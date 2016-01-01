@@ -2,15 +2,16 @@
 
 This is a dedicated FreeCAD workbench to create and simulate toolpaths('wirepaths') for the NiCr machine.
 
-### Details:
 
+### Details:
+  
   #### Things that work
   - Parametric machine
   - Shape to wirepath algorithm
   - Links between wirepaths
   - Wirepath animation
   
-  #### Thinks only accesible by code:
+  #### Things only accesible by code:
   - Wirepath to .nicr exporter
 
 
