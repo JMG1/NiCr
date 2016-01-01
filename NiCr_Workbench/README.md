@@ -9,11 +9,18 @@ This is a dedicated workbench to create and simulate toolpaths ('wirepaths') usi
 Open one terminal window (usually **ctrl+alt+t** ) and copy-paste line by line:
 
 **sudo apt-get install git**
+
 **git clone https://github.com/JMG1/NiCr**
+
 **cd ~/NiCr**
+
 **mv NiCr_Workbench ~/.FreeCAD/Mod**
+
 **cd ~/**
+
 **rm -rf NiCr**
+
+That's all.
 
 
 ### Windows/Manual install
