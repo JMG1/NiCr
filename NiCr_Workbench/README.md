@@ -3,6 +3,7 @@
 This is a dedicated FreeCAD workbench to create and simulate toolpaths('wirepaths') for the NiCr machine.
 
 ### Details:
+
   #### Things that work
   - Parametric machine
   - Shape to wirepath algorithm
