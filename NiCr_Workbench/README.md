@@ -4,13 +4,13 @@ This is a dedicated FreeCAD workbench to create and simulate toolpaths('wirepath
 
 
 ### Details:
-  
-  #### Things that work
+  #### Things that work (but are not finished):
   - Parametric machine
   - Shape to wirepath algorithm
   - Links between wirepaths
   - Wirepath animation
   
+
   #### Things only accesible by code:
   - Wirepath to .nicr exporter
 
