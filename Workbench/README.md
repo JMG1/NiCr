@@ -8,6 +8,7 @@ This is a dedicated FreeCAD workbench to create and simulate toolpaths('wirepath
   - Parametric machine
   - Shape to wirepath algorithm
   - Links between wirepaths
+  - Save wirepath as .nicr (GCode-like) file
   - Wirepath animation
   
 
