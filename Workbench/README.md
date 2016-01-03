@@ -25,7 +25,7 @@ This is a dedicated FreeCAD workbench to create and simulate toolpaths('wirepath
   
   **cd ~/NiCr**
   
-  **mv NiCr_Workbench ~/.FreeCAD/Mod**
+  **mv Workbench ~/.FreeCAD/Mod**
   
   **cd ~/**
   
@@ -35,7 +35,7 @@ This is a dedicated FreeCAD workbench to create and simulate toolpaths('wirepath
 
 
 ### Windows/Manual install (available to all users)
-  Download the repository (https://github.com/JMG1/NiCr) as ZIP file and extract the folder 'NiCr_Workbench' 
+  Download the repository (https://github.com/JMG1/NiCr) as ZIP file and extract the folder 'Workbench' 
   inside **C:\Program Files\FreeCAD\Mod** for Windows or **/usr/lib/FreeCAD/Mod** for Debian-like systems.
 
 ### What to do now?
