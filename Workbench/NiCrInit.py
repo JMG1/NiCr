@@ -137,7 +137,7 @@ class SaveToolPath:
             return False
 
     def Activated(self):
-        pass
+        NiCrPth.saveNiCrFile()
 
 # Animation classes
 class RunPathSimulation:

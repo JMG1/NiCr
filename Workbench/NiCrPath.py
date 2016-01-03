@@ -24,8 +24,10 @@
 # NiCrPathV3
 
 import FreeCAD
+import FreeCADGui
 import Part
 import time
+from PySide import QtGui
 
 class WirePathFolder:
     def __init__(self, obj):
@@ -417,7 +419,7 @@ def createFullPath():
     return complete_trajectory
 
 
-def writeNiCrFile(wirepath, wirepath_data, directory, file_name):
+def writeNiCrFile(wirepath, wirepath_data, directory):
     """
     This functions creates a file containing the .nicr instructions that can be
     read directly by the machine (GCode-like).
@@ -425,9 +427,10 @@ def writeNiCrFile(wirepath, wirepath_data, directory, file_name):
     wirepath_data = ( name, settings, feed_speed, temperature...)
     directory = '/home/user/whatever...''
     """
-    nicr_file = open(directory + '/' + file_name + '.nicr', 'w')
+    nicr_file = open(directory + '.nicr', 'w')
     # write header
-    nicr_file.write('PATH NAME:' + file_name + '\n')
+
+    nicr_file.write('PATH NAME:' + wirepath_data[1] + '\n')
     nicr_file.write('DATE: ' + time.strftime("%c") + '\n')
     nicr_file.write('SETTINGS ------------------------- \n')
     nicr_file.write('FEED SPEED: ' + str(wirepath_data[2]) + '\n')
@@ -450,9 +453,19 @@ def writeNiCrFile(wirepath, wirepath_data, directory, file_name):
     nicr_file.write('END')
     # close file
     nicr_file.close()
-    FreeCAD.Console.PrintMessage('NiCr code generated succesfully')
+    FreeCAD.Console.PrintMessage('NiCr code generated succesfully\n')
 
 
+def saveNiCrFile():
+    FCW = FreeCADGui.getMainWindow()
+    save_directory = QtGui.QFileDialog.getSaveFileName(FCW,
+                                                       'Save Wirepath as:',
+                                                       '/home',
+                                                       '.nicr')
+    full_path = createFullPath()
+    wirepath_data = ('test', '', 34, 213)
+    writeNiCrFile(full_path, wirepath_data, str(save_directory[0]))
+    FreeCAD.Console.PrintMessage('NiCr code saved: ' + str(save_directory[0]) + '\n')
 
 
 def projectEdgeToTrajectory(PA, PB, Z0, Z1):
