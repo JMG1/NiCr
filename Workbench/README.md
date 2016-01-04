@@ -3,14 +3,14 @@
 This is a dedicated FreeCAD workbench to create and simulate toolpaths('wirepaths') for the NiCr machine.
 
 
-### Details:
-  #### Things that work (but are not finished):
+### Current Features*:
   - Parametric machine
   - Shape to wirepath algorithm
   - Links between wirepaths
   - Save wirepath as .nicr (GCode-like) file
   - Wirepath animation
 
+  *some functionalites are not complete.
 
 ### Command line installation in Ubuntu/Mint/similar:
   Open one terminal window (usually **ctrl+alt+t** ) and copy-paste line by line:
