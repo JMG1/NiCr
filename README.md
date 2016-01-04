@@ -1,5 +1,5 @@
 # NiCr
-NiCr, my CNC Hot Wire Cutter project.
+NiCr(nicrome), my CNC Hot Wire Cutter project.
 
 ####Presentation video:
 
