@@ -39,7 +39,11 @@ class CreateSimMachine:
 
     def IsActive(self):
         if FreeCADGui.ActiveDocument:
-            return True
+            try:
+                a=FreeCAD.ActiveDocument.SimMachine.Name
+                return False
+            except:
+                return True
 
     def Activated(self):
         # check for already existing machines:
@@ -113,10 +117,12 @@ class CreatePathLink:
         LinkObj = FreeCAD.ActiveDocument.addObject('Part::FeaturePython', link_name)
         # initialize link object
         NiCrPth.LinkPath(LinkObj)
+        NiCrPth.LinkPathViewObject(LinkObj.ViewObject)
         # link representation
-        LinkObj.ViewObject.ShapeColor = (0.67, 0.0, 0.0)
-        LinkObj.ViewObject.Transparency = 90
-        LinkObj.ViewObject.LineColor = (1.0, 0.0, 0.0)
+        LinkObj.ViewObject.ShapeColor = (1.0, 0.0, 0.0)
+        LinkObj.ViewObject.Transparency = 15
+        # LinkObj.ViewObject.LineColor = (1.0, 0.0, 0.0)
+        LinkObj.ViewObject.DisplayMode = "Shaded"
         # folder and schedule
         cmplWP = FreeCAD.ActiveDocument.Wirepath
         cmplWP.ShapeSequence.append(LinkObj.Name)

@@ -309,7 +309,7 @@ class WirePathViewProvider:
     def getIcon(self):
         import os
         __dir__ = os.path.dirname(__file__)
-        return __dir__ + '/icons/WirePathIcon.svg'
+        return __dir__ + '/icons/WirePath.svg'
 
 
 # routing between WirePaths (wirepath path link)
@@ -375,6 +375,15 @@ class LinkPath:
         LB = Part.makeLine(PB_0, PB_1)
         return Part.makeLoft([LA, LB])
 
+
+class LinkPathViewObject:
+    def __init__(self, obj):
+        obj.Proxy = self
+
+    def getIcon(self):
+        import os
+        __dir__ = os.path.dirname(__file__)
+        return __dir__ + '/icons/PathLink.svg'
 
 # Create machine path
 def createFullPath():
