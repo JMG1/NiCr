@@ -10,7 +10,7 @@ This is a dedicated FreeCAD workbench to create and simulate toolpaths('wirepath
   - Save wirepath as .nicr (GCode-like) file
   - Wirepath animation
 
-  *some functionalites are not complete.
+  *some functionalities are not complete.
 
 ### Command line installation in Ubuntu/Mint/similar:
   Open one terminal window (usually **ctrl+alt+t** ) and copy-paste line by line:
