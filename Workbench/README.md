@@ -15,16 +15,16 @@ This is a dedicated FreeCAD workbench to create and simulate toolpaths('wirepath
 ### Command line installation in Ubuntu/Mint/similar:
   Open one terminal window (usually **ctrl+alt+t** ) and copy-paste line by line:
   
+  Install git:
   **sudo apt-get install git**
   
+  Clone repository:
   **git clone https://github.com/JMG1/NiCr**
   
-  **cd ~/NiCr**
+  Move workbench folder to /.FreeCAD/Mod:
+  **mv ~/NiCr/Workbench ~/.FreeCAD/Mod**
   
-  **mv Workbench ~/.FreeCAD/Mod**
-  
-  **cd ~/**
-  
+  Remove the NiCr folder (if you only want the workbench)
   **rm -rf NiCr**
   
   That's all.
