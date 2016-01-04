@@ -45,7 +45,7 @@ class NiCrWorkbench(Workbench):
 
         FreeCAD.t = self.appendToolbar('NiCrWorkbench', self.tools)
         self.appendMenu('NiCrWorkbench', self.tools)
-        FreeCAD.Console.PrintMessage('NiCr workbench loaded')
+        FreeCAD.Console.PrintMessage('NiCr workbench loaded\n')
 
     def Activated(self):
         pass

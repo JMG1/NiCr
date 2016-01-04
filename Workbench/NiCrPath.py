@@ -36,8 +36,13 @@ class WirePathFolder:
 
         obj.addProperty('App::PropertyFloat',
                         'FeedSpeed',
-                        'Path Settings'
+                        'Path Settings',
                         'Feed speed in mm/second').FeedSpeed = 5.0
+
+        obj.addProperty('App::PropertyInteger',
+                        'WireTemperature',
+                        'Path Settings',
+                        'Wire temperature from 0-255 (0-max)').WireTemperature = 200
 
         obj.addProperty('App::PropertyVector',
                         'ZeroPoint')
@@ -429,7 +434,6 @@ def writeNiCrFile(wirepath, wirepath_data, directory):
     """
     nicr_file = open(directory + '.nicr', 'w')
     # write header
-
     nicr_file.write('PATH NAME:' + wirepath_data[1] + '\n')
     nicr_file.write('DATE: ' + time.strftime("%c") + '\n')
     nicr_file.write('SETTINGS ------------------------- \n')
@@ -458,12 +462,13 @@ def writeNiCrFile(wirepath, wirepath_data, directory):
 
 def saveNiCrFile():
     FCW = FreeCADGui.getMainWindow()
+    cpfolder = FreeCAD.ActiveDocument.Wirepath
     save_directory = QtGui.QFileDialog.getSaveFileName(FCW,
                                                        'Save Wirepath as:',
                                                        '/home',
                                                        '.nicr')
     full_path = createFullPath()
-    wirepath_data = ('test', '', 34, 213)
+    wirepath_data = ('test', '', cpfolder.FeedSpeed, cpfolder.WireTemperature)
     writeNiCrFile(full_path, wirepath_data, str(save_directory[0]))
     FreeCAD.Console.PrintMessage('NiCr code saved: ' + str(save_directory[0]) + '\n')
 
