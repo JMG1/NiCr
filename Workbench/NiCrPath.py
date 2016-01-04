@@ -211,7 +211,12 @@ def ShapeToNiCrPath(selected_object, precision, reverse=False):
 
     Tr_list_A.append( Tr_list_A[0] )
     Tr_list_B.append( Tr_list_B[0] )
-    return ( Tr_list_A, Tr_list_B )
+    wirepath = ( Tr_list_A, Tr_list_B )
+    # check that sideA  has the lower z value:
+    if Tr_list_A[0][2] > Tr_list_B[0][2]:
+        wirepath = ( Tr_list_B, Tr_list_A )
+
+    return wirepath
 
 
 def PathToShape( point_list ):
@@ -554,7 +559,7 @@ def runSimulation(complete_raw_path):
         # -YA
         base_YA = YA.Placement.Base
         rot_YA = YA.Placement.Rotation
-        base_YA = FreeCAD.Vector(pa.x-xoff, pb.y-yoff, base_XA.z)
+        base_YA = FreeCAD.Vector(pa.x-xoff, pa.y-yoff, base_XA.z)
         YA.Placement = FreeCAD.Placement(base_YA, rot_XA)
         # -XB
         base_XB = XB.Placement.Base
