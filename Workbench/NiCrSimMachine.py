@@ -49,18 +49,18 @@ class SimMachine:
 
 
     def onChanged( self, fp, prop):
-        if prop == 'XLength' or prop == 'YLength' or prop == 'ZLength' or prop == 'FrameDiameter':
-            self.addMachineToDocument( fp.FrameDiameter, fp.XLength, fp.YLength, fp.ZLength )
-            #pass
+        try:
+            if prop == 'XLength' or prop == 'YLength' or prop == 'ZLength' or prop == 'FrameDiameter':
+                self.addMachineToDocument( fp.FrameDiameter, fp.XLength, fp.YLength, fp.ZLength )
+
+        except AttributeError:
+            pass
+
 
     def execute( self, fp ):
-        #dbm( 'e' )
-        #self.addMachineToDocument( fp.FrameDiameter, fp.XLength, fp.YLength, fp.ZLength )
         pass
 
     def buildMachine( self, tube_diameter, w_x, w_y, w_z ):
-        # machine frame
-        #dbm( '2.1' )
         main_cube = Part.makeBox( w_x + 2*tube_diameter,
                                   w_y + 2*tube_diameter,
                                   w_z + 2*tube_diameter )
@@ -88,7 +88,6 @@ class SimMachine:
         frame = main_cube.cut( xy_cutcube )
         frame = frame.cut( xz_cutcube )
         frame = frame.cut( yz_cutcube )
-        #dbm( '2.2' )
         # machine x axis frame
         xa_frame = Part.makeBox( tube_diameter,
                                  w_y,
