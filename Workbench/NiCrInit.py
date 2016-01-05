@@ -128,6 +128,29 @@ class CreatePathLink:
         cmplWP.ShapeSequence.append(LinkObj.Name)
         cmplWP.addObject(LinkObj)
 
+class CreateZeroLink:
+    def GetResources(self):
+        return {'Pixmap': __dir__ + '/icons/ZeroPath.svg',
+                'MenuText': 'Zero Link',
+                'ToolTip': 'Creates link path between machine zero and selected point'}
+
+    def IsActive(self):
+        try:
+            a = FreeCAD.Gui.Selection.getSelectionEx()[0]
+            return True
+        except:
+            return False
+
+    def Activated(self):
+        zeroLinkObj = FreeCAD.ActiveDocument.addObject('Part::FeaturePython', 'ZeroLink')
+        NiCrPth.LinkZero(zeroLinkObj)
+        NiCrPth.LinkZeroViewProvider(zeroLinkObj.ViewObject)
+        zeroLinkObj.ViewObject.ShapeColor = (1.0, 0.0, 0.0)
+        zeroLinkObj.ViewObject.Transparency = 15
+        zeroLinkObj.ViewObject.DisplayMode = 'Shaded'
+        cmplWP = FreeCAD.ActiveDocument.Wirepath
+        cmplWP.addObject(zeroLinkObj)
+
 
 class SaveToolPath:
     def GetResources(self):
@@ -172,3 +195,4 @@ if FreeCAD.GuiUp:
     FreeCAD.Gui.addCommand('CreatePathLink', CreatePathLink())
     FreeCAD.Gui.addCommand('SaveToolPath', SaveToolPath())
     FreeCAD.Gui.addCommand('RunPathSimulation', RunPathSimulation())
+    FreeCAD.Gui.addCommand('CreateZeroLink', CreateZeroLink())

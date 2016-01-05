@@ -390,6 +390,89 @@ class LinkPathViewObject:
         __dir__ = os.path.dirname(__file__)
         return __dir__ + '/icons/PathLink.svg'
 
+
+class LinkZero:
+    def __init__(self, obj):
+        Path = FreeCAD.Gui.Selection.getSelectionEx()[0].Object
+        Point = FreeCAD.Gui.Selection.getSelectionEx()[0].SubObjects[0].Point
+        obj.addProperty('App::PropertyBool',
+                        'DirectPath',
+                        'Path Options').DirectPath = False
+
+        obj.addProperty('App::PropertyBool',
+                        'Reverse',
+                        'Path Options').Reverse = False
+
+        obj.addProperty('App::PropertyInteger',
+                        'LinkPoint').LinkPoint = pointFromPath(Point, Path.RawPath)
+
+        obj.addProperty('App::PropertyString',
+                        'PathName').PathName = Path.Name
+
+        obj.Proxy = self
+        # create for the first time
+        obj.Shape = self.linkZeroToPoint(obj.PathName, obj.LinkPoint, obj.DirectPath)
+
+    def onChanged(self, fp, prop):
+        if prop == 'DirectPath' or prop == 'Reverse':
+            fp.Shape = self.linkZeroToPoint(fp.PathName, fp.LinkPoint, fp.DirectPath)
+
+
+    def execute(self, fp):
+        pass
+
+    def linkZeroToPoint(self, path_name, link_point, DirectPath):
+        Zero = FreeCAD.ActiveDocument.NiCrMachine.VirtualMachineZero
+        MachineZ = FreeCAD.ActiveDocument.NiCrMachine.ZLength
+        FrameDiam = FreeCAD.ActiveDocument.NiCrMachine.FrameDiameter
+        PointA = FreeCAD.ActiveDocument.getObject(path_name).RawPath[0][link_point]
+        PointB = FreeCAD.ActiveDocument.getObject(path_name).RawPath[1][link_point]
+        # convert PointA and PointB from list to freecad vector
+        PointA = FreeCAD.Vector(PointA[0], PointA[1], PointA[2])
+        PointB = FreeCAD.Vector(PointB[0], PointB[1], PointB[2])
+        # Machine Zero position
+        PZA = Zero + FreeCAD.Vector(0, 0, FrameDiam*(1.1))
+        PZB = Zero + FreeCAD.Vector(0, 0, FrameDiam*(1.1) + MachineZ)
+        # determine longest Y between PointA and PointB
+        ly = PointA[1]
+        if PointA[1] < PointB[1]:
+            ly = PointB[1]
+
+        # build auxiliar points for square aproximation trajectory(DirectPath = False)
+        if not(DirectPath):
+            auxPA = PZA + FreeCAD.Vector(0, ly, 0)
+            auxPB = PZB + FreeCAD.Vector(0, ly, 0)
+
+            LZAauxA = Part.makeLine(PZA, auxPA)
+            LZBauxB = Part.makeLine(PZB, auxPB)
+            LauxAPointA = Part.makeLine(auxPA, PointA)
+            LauxBPointB = Part.makeLine(auxPB, PointB)
+
+            Path0 = Part.makeLoft([LZAauxA, LZBauxB])
+            Path1 = Part.makeLoft([LauxAPointA, LauxBPointB])
+
+            comp = Part.makeCompound([Path0, Path1])
+
+        # direct approximation trajectory (DirectPath = True)
+        else:
+            LZAPointA = Part.makeLine(PZA, PointA)
+            LZBPointB = Part.makeLine(PZA, PointA)
+            Path = Part.makeLoft([LZAPointA, LZBPointB])
+            comp = Part.makeCompound([Path])
+
+        return comp
+
+
+class LinkZeroViewProvider:
+    def __init__(self, obj):
+        obj.Proxy = self
+
+    def getIcon(self):
+        import os
+        __dir__ = os.path.dirname(__file__)
+        return __dir__ + '/icons/ZeroLink'
+
+
 # Create machine path
 def createFullPath():
     """
@@ -458,12 +541,13 @@ def writeNiCrFile(wirepath, wirepath_data, directory):
     nicr_file.write('INIT\n')
     nicr_file.write('POWER ON\n')
     nicr_file.write('WIRE ' + str(wirepath_data[3]) + '\n')
-    # write trajectories
+    # write trajectories with compensation for virtual machine ZeroPoint <----
+    zeroPoint = FreeCAD.ActiveDocument.NiCrMachine.VirtualMachineZero
     for i in range(len(wirepath[0])):
-        AX = str(round(wirepath[0][i][0], 3)) + ' '
-        AY = str(round(wirepath[0][i][1], 3)) + ' '
-        BX = str(round(wirepath[1][i][0], 3)) + ' '
-        BY = str(round(wirepath[1][i][1], 3)) + '\n'
+        AX = str(round(wirepath[0][i][0] - zeroPoint.x, 3)) + ' '
+        AY = str(round(wirepath[0][i][1] - zeroPoint.y, 3)) + ' '
+        BX = str(round(wirepath[1][i][0] - zeroPoint.x, 3)) + ' '
+        BY = str(round(wirepath[1][i][1] - zeroPoint.y, 3)) + '\n'
         ins = 'MOVE ' + AX + AY + BX + BY
         nicr_file.write(ins)
     # write machine shutdown

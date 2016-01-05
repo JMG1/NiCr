@@ -40,6 +40,7 @@ class NiCrWorkbench(Workbench):
         self.tools = ['CreateSimMachine',
                       'CreateToolPath',
                       'CreatePathLink',
+                      'CreateZeroLink',
                       'SaveToolPath',
                       'RunPathSimulation']
 

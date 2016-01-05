@@ -44,8 +44,12 @@ class SimMachine:
                          'FrameDiameter',
                          'Machine Geometry' ).FrameDiameter = 30.0
 
+        obj.addProperty('App::PropertyVector',
+                        'VirtualMachineZero').VirtualMachineZero = FreeCAD.Vector(0, 0, 0)
+
         obj.Proxy = self
         self.addMachineToDocument( obj.FrameDiameter, obj.XLength, obj.YLength, obj.ZLength, created=False )
+        obj.VirtualMachineZero = FreeCAD.Vector(obj.FrameDiameter*1.6, obj.FrameDiameter*1.8, 0)
 
 
     def onChanged( self, fp, prop):
