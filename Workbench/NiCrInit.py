@@ -69,8 +69,13 @@ class CreateToolPath:
                 'ToolTip': 'Create the wirepaths for the selected objects'}
 
     def IsActive(self):
-        if FreeCADGui.ActiveDocument:
+        try:
+            a = FreeCAD.ActiveDocument.NiCrMachine
             return True
+
+        except:
+            return False
+
 
     def Activated(self):
         # create wirepath object
@@ -105,8 +110,13 @@ class CreatePathLink:
                 'ToolTip': 'Create a link between selected paths'}
 
     def IsActive(self):
-        if FreeCAD.ActiveDocument:
+        try:
+            a = FreeCAD.ActiveDocument.NiCrMachine
             return True
+
+        except:
+            return False
+
 
     def Activated(self):
         # Selection

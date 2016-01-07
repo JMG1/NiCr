@@ -67,27 +67,30 @@ class SimMachine:
     def buildMachine( self, tube_diameter, w_x, w_y, w_z ):
         main_cube = Part.makeBox( w_x + 2*tube_diameter,
                                   w_y + 2*tube_diameter,
-                                  w_z + 2*tube_diameter )
+                                  w_z + 2*tube_diameter,
+                                  FreeCAD.Vector(-1.6*tube_diameter,
+                                                 -1.8*tube_diameter,
+                                                 -1.1*tube_diameter))
 
         xy_cutcube = Part.makeBox( w_x,
                                    w_y,
                                    w_z*1.5,
-                                   FreeCAD.Vector( tube_diameter,
-                                                   tube_diameter,
-                                                   -tube_diameter ) )
+                                   FreeCAD.Vector(-0.6*tube_diameter,
+                                                  -0.8*tube_diameter,
+                                                  -2.1*tube_diameter))
         xz_cutcube = Part.makeBox( w_x,
                                    w_y*1.5,
                                    w_z,
-                                   FreeCAD.Vector( tube_diameter,
-                                                   -tube_diameter,
-                                                   tube_diameter ) )
+                                   FreeCAD.Vector( -0.6*tube_diameter,
+                                                   -2.8*tube_diameter,
+                                                   -0.1*tube_diameter))
 
         yz_cutcube = Part.makeBox( w_x*1.5,
                                    w_y,
                                    w_z,
-                                   FreeCAD.Vector( -tube_diameter,
-                                                   tube_diameter,
-                                                   tube_diameter ) )
+                                   FreeCAD.Vector( -2.6*tube_diameter,
+                                                   -0.8*tube_diameter,
+                                                   -0.1*tube_diameter ) )
 
         frame = main_cube.cut( xy_cutcube )
         frame = frame.cut( xz_cutcube )
@@ -96,34 +99,33 @@ class SimMachine:
         xa_frame = Part.makeBox( tube_diameter,
                                  w_y,
                                  tube_diameter,
-                                 FreeCAD.Vector( tube_diameter*1.1,
-                                                 tube_diameter,
-                                                 0 ) )
+                                 FreeCAD.Vector( -0.5*tube_diameter,
+                                                 -0.8*tube_diameter,
+                                                 -1.1*tube_diameter))
 
         xb_frame = Part.makeBox( tube_diameter,
                                  w_y,
                                  tube_diameter,
-                                 FreeCAD.Vector( tube_diameter*1.1,
-                                                 tube_diameter,
-                                                 w_z + tube_diameter ) )
+                                 FreeCAD.Vector( -0.5*tube_diameter,
+                                                 -0.8*tube_diameter,
+                                                 w_z + -0.1*tube_diameter))
 
         # machine y axis frame
         ya_frame = Part.makeBox( tube_diameter*1.2,
                                  tube_diameter*1.6,
                                  tube_diameter*1.2,
-                                 FreeCAD.Vector( tube_diameter,
-                                                 tube_diameter,
-                                                 -tube_diameter*0.1 ) )
+                                 FreeCAD.Vector( -0.6*tube_diameter,
+                                                 -0.8*tube_diameter,
+                                                 -1.2*tube_diameter))
 
         yb_frame = Part.makeBox( tube_diameter*1.2,
                                  tube_diameter*1.6,
                                  tube_diameter*1.2,
-                                 FreeCAD.Vector( tube_diameter,
-                                                 tube_diameter,
-                                                 w_z + tube_diameter*0.9 ) )
+                                 FreeCAD.Vector( -0.6*tube_diameter,
+                                                 -0.8*tube_diameter,
+                                                 w_z - tube_diameter*0.2 ) )
         #dbm('2.3')
         return frame, xa_frame, xb_frame, ya_frame, yb_frame
-
 
     def addMachineToDocument(self, FrameDiameter, XLength, YLength, ZLength, created=True):
         # temporal workarround until:http://forum.freecadweb.org/viewtopic.php?f=22&t=13337
