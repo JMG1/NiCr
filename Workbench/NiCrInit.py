@@ -27,7 +27,7 @@ import FreeCAD
 import FreeCADGui
 import Part
 import NiCrSimMachine as NiCrSM
-import NiCrPath as NiCrPth
+import NiCrPath
 
 __dir__ = os.path.dirname(__file__)
 
@@ -64,7 +64,7 @@ class CreateSimMachine:
 
 class CreateToolPath:
     def GetResources(self):
-        return {'Pixmap': __dir__ + '/icons/RoutePart.svg',
+        return {'Pixmap': __dir__ + '/icons/WirePath.svg',
                 'MenuText': 'Route',
                 'ToolTip': 'Create the wirepaths for the selected objects'}
 
@@ -78,29 +78,29 @@ class CreateToolPath:
 
 
     def Activated(self):
-        # create wirepath object
-        for i in range(len(FreeCAD.Gui.Selection.getSelectionEx())):
-            selObj = FreeCAD.Gui.Selection.getSelectionEx()[i].Object
-            wirepath_name = 'Wirepath_' + selObj.Name
-            wirepathobj = FreeCAD.ActiveDocument.addObject('Part::FeaturePython', wirepath_name)
-            NiCrPth.WirePath(wirepathobj, selObj)
-            NiCrPth.WirePathViewProvider(wirepathobj.ViewObject)
-            # wirepathobj.ViewObject.DisplayMode = "Shaded"
-            wirepathobj.ViewObject.DisplayMode = 'Flat Lines'
-            wirepathobj.ViewObject.LineWidth = 1.00
-            wirepathobj.ViewObject.ShapeColor = (0.00, 1.00, 1.00)
-            # wirepathobj.ViewObject.LineColor = (1.00, 0.67, 0.00)
-            # create CompleteWirePath if none exists
+        # retrieve Selection
+        selection = FreeCAD.Gui.Selection.getSelectionEx()
+        for i in range(len(selection)):
+            # create WirePath folder if it does not exist
             try:
-                cmplWP = FreeCAD.ActiveDocument.Wirepath
+                WPFolder = FreeCAD.ActiveDocument.WirePath
 
             except:
-                cmplWP = FreeCAD.ActiveDocument.addObject('App::DocumentObjectGroupPython', 'Wirepath')
-                NiCrPth.WirePathFolder(cmplWP)
+                WPFolder = FreeCAD.ActiveDocument.addObject('App::DocumentObjectGroupPython', 'WirePath')
+                NiCrPath.WirePathFolder(WPFolder)
 
-            # update cut order
-            # place inside complete wire path folder
-            cmplWP.addObject(wirepathobj)
+            # create shapepath object
+            selObj = selection[i].Object
+            shapepath_name = 'ShapePath_' + selObj.Name
+            shapepathobj = FreeCAD.ActiveDocument.addObject('Part::FeaturePython', shapepath_name)
+            # initialize python object
+            NiCrPath.ShapePath(shapepathobj, selObj)
+            NiCrPath.ShapePathViewProvider(shapepathobj.ViewObject)
+            # modify color
+            shapepathobj.ViewObject.ShapeColor = (1.0, 1.0, 1.0)
+            shapepathobj.ViewObject.LineWidth = 1.0
+            WPFolder.addObject(shapepathobj)
+
 
 
 class CreatePathLink:
@@ -119,47 +119,56 @@ class CreatePathLink:
 
 
     def Activated(self):
-        # Selection
-        SelObjA = FreeCAD.Gui.Selection.getSelectionEx()[0].Object
-        SelObjB = FreeCAD.Gui.Selection.getSelectionEx()[1].Object
-        # Link object
-        link_name = 'Link_' + SelObjA.Name[8:] + '_' + SelObjB.Name[8:]
-        LinkObj = FreeCAD.ActiveDocument.addObject('Part::FeaturePython', link_name)
-        # initialize link object
-        NiCrPth.LinkPath(LinkObj)
-        NiCrPth.LinkPathViewObject(LinkObj.ViewObject)
-        # link representation
-        LinkObj.ViewObject.ShapeColor = (1.0, 0.0, 0.0)
-        LinkObj.ViewObject.Transparency = 15
-        # LinkObj.ViewObject.LineColor = (1.0, 0.0, 0.0)
-        LinkObj.ViewObject.DisplayMode = "Shaded"
-        # folder and schedule
-        cmplWP = FreeCAD.ActiveDocument.Wirepath
-        cmplWP.ShapeSequence.append(LinkObj.Name)
-        cmplWP.addObject(LinkObj)
+        # retrieve selection
+        selection = FreeCAD.Gui.Selection.getSelectionEx()
+        if len(selection) == 1:
+            # Create initial/end path if length of selection == 1
+            selObj = selection[0]
+            try:
+                a = FreeCAD.ActiveDocument.InitialPath
+                try:
+                    a = FreeCAD.ActiveDocument.FinalPath
 
-class CreateZeroLink:
-    def GetResources(self):
-        return {'Pixmap': __dir__ + '/icons/ZeroPath.svg',
-                'MenuText': 'Zero Link',
-                'ToolTip': 'Creates link path between machine zero and selected point'}
+                except:
+                    # create final path, because initial path already exists
+                    finalobj = FreeCAD.ActiveDocument.addObject('Part::FeaturePython','FinalPath')
+                    NiCrPath.FinalPath(finalobj, selObj)
+                    NiCrPath.FinalPathViewProvider(finalobj.ViewObject)
+                    finalobj.ViewObject.ShapeColor = (1.0, 1.0, 1.0)
+                    finalobj.ViewObject.Transparency = 15
+                    finalobj.ViewObject.DisplayMode = 'Shaded'
+                    FreeCAD.ActiveDocument.WirePath.addObject(finalobj)
 
-    def IsActive(self):
-        try:
-            a = FreeCAD.Gui.Selection.getSelectionEx()[0]
-            return True
-        except:
-            return False
+            except:
+                # create initial path object
+                initialobj = FreeCAD.ActiveDocument.addObject('Part::FeaturePython','InitialPath')
+                NiCrPath.InitialPath(initialobj, selObj)
+                NiCrPath.InitialPathViewProvider(initialobj.ViewObject)
+                # initial trajectory is red
+                initialobj.ViewObject.ShapeColor = (1.0, 0.0, 0.0)
+                initialobj.ViewObject.Transparency = 15
+                initialobj.ViewObject.DisplayMode = 'Shaded'
+                FreeCAD.ActiveDocument.WirePath.addObject(initialobj)
 
-    def Activated(self):
-        zeroLinkObj = FreeCAD.ActiveDocument.addObject('Part::FeaturePython', 'ZeroLink')
-        NiCrPth.LinkZero(zeroLinkObj)
-        NiCrPth.LinkZeroViewProvider(zeroLinkObj.ViewObject)
-        zeroLinkObj.ViewObject.ShapeColor = (1.0, 0.0, 0.0)
-        zeroLinkObj.ViewObject.Transparency = 15
-        zeroLinkObj.ViewObject.DisplayMode = 'Shaded'
-        cmplWP = FreeCAD.ActiveDocument.Wirepath
-        cmplWP.addObject(zeroLinkObj)
+        if len(selection) == 2:
+            # Create link between paths if len(selection) = 2
+            selA = selection[0]
+            selB = selection[1]
+            SelObjA = selA.Object
+            SelObjB = selA.Object
+            # Link object
+            link_name = 'Link_' + SelObjA.Name[8:] + '_' + SelObjB.Name[8:]
+            LinkObj = FreeCAD.ActiveDocument.addObject('Part::FeaturePython', link_name)
+            # initialize link object
+            NiCrPath.LinkPath(LinkObj, selA, selB)
+            NiCrPath.LinkPathViewProvider(LinkObj.ViewObject)
+            # link representation
+            # LinkObj.ViewObject.ShapeColor = (1.0, 0.0, 0.0)
+            LinkObj.ViewObject.Transparency = 15
+            # LinkObj.ViewObject.LineColor = (1.0, 0.0, 0.0)
+            LinkObj.ViewObject.DisplayMode = "Shaded"
+            # add to folder
+            FreeCAD.ActiveDocument.WirePath.addObject(LinkObj)
 
 
 class SaveToolPath:
@@ -170,13 +179,13 @@ class SaveToolPath:
 
     def IsActive(self):
         try:
-            a = FreeCAD.ActiveDocument.Wirepath.ShapeSequence[0]
+            a = FreeCAD.ActiveDocument.FinalPath
             return True
         except:
             return False
 
     def Activated(self):
-        NiCrPth.saveNiCrFile()
+        NiCrPath.saveNiCrFile()
 
 # Animation classes
 class RunPathSimulation:
@@ -187,14 +196,14 @@ class RunPathSimulation:
 
     def IsActive(self):
         try:
-            a = FreeCAD.ActiveDocument.Wirepath.ShapeSequence[0]
+            a = FreeCAD.ActiveDocument.FinalPath
             return True
         except:
             return False
 
     def Activated(self):
-        full_path = NiCrPth.createFullPath()
-        NiCrPth.runSimulation(full_path)
+        full_path = NiCrPath.CreateCompleteRawPath()
+        NiCrPath.runSimulation(full_path)
         FreeCAD.Console.PrintMessage('Simulation finished\n')
 
 
@@ -205,4 +214,3 @@ if FreeCAD.GuiUp:
     FreeCAD.Gui.addCommand('CreatePathLink', CreatePathLink())
     FreeCAD.Gui.addCommand('SaveToolPath', SaveToolPath())
     FreeCAD.Gui.addCommand('RunPathSimulation', RunPathSimulation())
-    FreeCAD.Gui.addCommand('CreateZeroLink', CreateZeroLink())

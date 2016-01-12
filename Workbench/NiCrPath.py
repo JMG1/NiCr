@@ -21,7 +21,7 @@
 #*   USA                                                                   *
 #*                                                                         *
 #***************************************************************************/
-# NiCrPathV3
+
 
 import FreeCAD
 import FreeCADGui
@@ -29,29 +29,422 @@ import Part
 import time
 from PySide import QtGui
 
+
 class WirePathFolder:
     def __init__(self, obj):
-        obj.addProperty('App::PropertyPythonObject',
-                        'ShapeSequence').ShapeSequence = []
-
-        obj.addProperty('App::PropertyFloat',
-                        'FeedSpeed',
-                        'Path Settings',
-                        'Feed speed in mm/second').FeedSpeed = 5.0
-
-        obj.addProperty('App::PropertyInteger',
-                        'WireTemperature',
-                        'Path Settings',
-                        'Wire temperature from 0-255 (0-max)').WireTemperature = 200
-
-        obj.addProperty('App::PropertyVector',
-                        'ZeroPoint')
-
+        obj.addProperty('App::PropertyVector', 'ZeroPoint')
+        obj.addProperty('App::PropertyBool', 'UpdateContent')
+        obj.addProperty('App::PropertyFloat', 'setCutSpeed')
+        obj.addProperty('App::PropertyInteger', 'setWireTemp')
         obj.Proxy = self
 
     def execute(self, fp):
         pass
 
+
+class ShapePath:
+    def __init__(self, obj, selObj):
+        obj.addProperty('App::PropertyString',
+                        'ShapeName',
+                        'Path Data').ShapeName = selObj.Name
+
+        obj.addProperty('App::PropertyPythonObject',
+                        'RawPath',
+                        'Path Data')
+
+        obj.addProperty('App::PropertyFloat',
+                        'CutSpeed',
+                        'Path Settings').CutSpeed = 0.0
+
+        obj.addProperty('App::PropertyFloat',
+                        'WireTemperature',
+                        'Path Settings').WireTemperature = 0.0
+
+        obj.addProperty('App::PropertyFloat',
+                        'PointDensity',
+                        'Path Settings',
+                        'Path density in mm/point').PointDensity = 6.0
+
+        obj.addProperty('App::PropertyBool',
+                        'Reverse',
+                        'Path Settings',
+                        'Reverses the cut direction of this path').Reverse = False
+
+        obj.addProperty('App::PropertyBool',
+                        'ShowMachinePath',
+                        'Visualization',
+                        'Shows the path projected to the machine sides')
+
+        obj.Proxy = self
+        shape = FreeCAD.ActiveDocument.getObject(obj.ShapeName)
+        obj.RawPath = ShapeToNiCrPath(shape, obj.PointDensity, reverse=obj.Reverse)
+        obj.Shape = PathToShape(obj.RawPath)
+        # hide original shape
+        FreeCAD.ActiveDocument.getObject(obj.ShapeName).ViewObject.Visibility = False
+
+    def execute(self, fp):
+        shape = FreeCAD.ActiveDocument.getObject(fp.ShapeName)
+        fp.RawPath = ShapeToNiCrPath(shape, fp.PointDensity, reverse=fp.Reverse)
+        fp.Shape = PathToShape(fp.RawPath)
+        # TODO send signal to any child object for update
+
+
+class ShapePathViewProvider:
+    def __init__(self,obj):
+        obj.Proxy = self
+
+    def getIcon(self):
+        import os
+        __dir__ = os.path.dirname(__file__)
+        return __dir__ + '/icons/WirePath.svg'
+
+
+class LinkPath:
+    def __init__(self, obj, selA, selB):
+        obj.addProperty('App::PropertyString',
+                        'PathNameA',
+                        'Link Data').PathNameA = selA.Object.Name
+
+        obj.addProperty('App::PropertyString',
+                        'PathNameB',
+                        'Link Data').PathNameB = selB.Object.Name
+
+        obj.addProperty('App::PropertyInteger',
+                        'PathIndexA',
+                        'Link Data').PathIndexA = pointFromPath(selA.SubObjects[0].Point,
+                                                                selA.Object.RawPath)
+
+        obj.addProperty('App::PropertyInteger',
+                        'PathIndexB',
+                        'Link Data').PathIndexB = pointFromPath(selB.SubObjects[0].Point,
+                                                                selB.Object.RawPath)
+
+        obj.addProperty('App::PropertyFloat',
+                        'CutSpeed',
+                        'Path Settings').CutSpeed = 0.0
+
+        obj.addProperty('App::PropertyFloat',
+                        'WireTemperature',
+                        'Path Settings').WireTemperature = 0.0
+
+        # add 5 control points
+        for i in range(5):
+            obj.addProperty('App::PropertyVector',
+                            'ControlPoint' + str(i),
+                            'Path Control Points')
+
+        obj.addProperty('App::PropertyBool',
+                        'update').update = False
+
+        obj.Proxy = self
+        # create for the first time
+        lp_A = []  # link_path_A (machine side A = lower Z)
+        lp_B = []  # link_path_A (machine side A = lower Z)
+        # append initial point from pathshape A
+        lp_A.append(FreeCAD.ActiveDocument.getObject(obj.PathNameA).RawPath[0][obj.PathIndexA])
+        lp_B.append(FreeCAD.ActiveDocument.getObject(obj.PathNameA).RawPath[1][obj.PathIndexA])
+        # append destination point in pathshape B
+        lp_A.append(FreeCAD.ActiveDocument.getObject(obj.PathNameB).RawPath[0][obj.PathIndexB])
+        lp_B.append(FreeCAD.ActiveDocument.getObject(obj.PathNameB).RawPath[1][obj.PathIndexB])
+        # joint both lists
+        lp = (lp_A, lp_B)
+        # create the shape to representate link in 3d space
+        obj.Shape = PathToShape(lp)
+
+
+    def onChanged(self, fp, prop):
+        pass
+
+    def execute(self, fp):
+        NiCrMachine_z = FreeCAD.ActiveDocument.NiCrMachine.ZLength
+        lp_A = []  # link_path_A (machine side A = lower Z)
+        lp_B = []  # link_path_B (machine side B = ZLength)
+        # append initial point from pathshape A
+        lp_A.append(FreeCAD.ActiveDocument.getObject(fp.PathNameA).RawPath[0][fp.PathIndexA])
+        lp_B.append(FreeCAD.ActiveDocument.getObject(fp.PathNameA).RawPath[1][fp.PathIndexA])
+        # append aux control points
+        for i in range(5):
+            aux_p = fp.getPropertyByName('ControlPoint' + str(i))
+            if ( aux_p.x > 0 or aux_p.y > 0 ) and aux_p.z == 0:
+                # draw aux point if it has been modified
+                lp_A.append([aux_p.x, aux_p.y, 0.0])
+                lp_B.append([aux_p.x, aux_p.y, NiCrMachine_z])
+
+        # append destination point in pathshape B
+        lp_A.append(FreeCAD.ActiveDocument.getObject(fp.PathNameB).RawPath[0][fp.PathIndexB])
+        lp_B.append(FreeCAD.ActiveDocument.getObject(fp.PathNameB).RawPath[1][fp.PathIndexB])
+        # joint both lists
+        lp = (lp_A, lp_B)
+        # create the shape to representate link in 3d space
+        fp.Shape = PathToShape(lp)
+        fp.update = False
+
+
+
+class LinkPathViewProvider:
+    def __init__(self,obj):
+        obj.Proxy = self
+
+    def getIcon(self):
+        import os
+        __dir__ = os.path.dirname(__file__)
+        return __dir__ + '/icons/PathLink.svg'
+
+
+class InitialPath:
+    def __init__(self, obj, selObj):
+        obj.addProperty('App::PropertyString',
+                        'PathName',
+                        'Link Data').PathName = selObj.Object.Name
+
+        obj.addProperty('App::PropertyInteger',
+                        'PathIndex',
+                        'Link Data').PathIndex = pointFromPath(selObj.SubObjects[0].Point,
+                                                               selObj.Object.RawPath)
+
+        obj.addProperty('App::PropertyFloat',
+                        'CutSpeed',
+                        'Path Settings').CutSpeed = 0.0
+
+        obj.addProperty('App::PropertyFloat',
+                        'WireTemperature',
+                        'Path Settings').WireTemperature = 0.0
+
+        # add 5 control points
+        for i in range(5):
+            obj.addProperty('App::PropertyVector',
+                            'ControlPoint' + str(i),
+                            'Path Control Points')
+
+        obj.addProperty('App::PropertyBool',
+                        'update').update = False
+
+        obj.Proxy = self
+        # create for the first time
+        NiCrMachine = FreeCAD.ActiveDocument.NiCrMachine
+        lp_A = []  # link_path_A (machine side A = lower Z)
+        lp_B = []  # link_path_A (machine side A = lower Z)
+        # append initial point from pathshape A
+        lp_A.append(NiCrMachine.VirtualMachineZero)
+        lp_B.append(NiCrMachine.VirtualMachineZero + FreeCAD.Vector(0, 0, NiCrMachine.ZLength))
+        # append destination point in pathshape A
+        lp_A.append(FreeCAD.ActiveDocument.getObject(obj.PathName).RawPath[0][obj.PathIndex])
+        lp_B.append(FreeCAD.ActiveDocument.getObject(obj.PathName).RawPath[1][obj.PathIndex])
+        # joint both lists
+        lp = (lp_A, lp_B)
+        # create the shape to representate link in 3d space
+        obj.Shape = PathToShape(lp)
+
+    def onChanged(self, fp, prop):
+        pass
+
+    def execute(self, fp):
+        NiCrMachine = FreeCAD.ActiveDocument.NiCrMachine
+        lp_A = []  # link_path_A (machine side A = lower Z)
+        lp_B = []  # link_path_A (machine side A = lower Z)
+        # append initial point from pathshape A
+        lp_A.append(NiCrMachine.VirtualMachineZero)
+        lp_B.append(NiCrMachine.VirtualMachineZero + FreeCAD.Vector(0, 0, NiCrMachine.ZLength))
+        # append aux control points
+        for i in range(5):
+            aux_p = fp.getPropertyByName('ControlPoint' + str(i))
+            if ( aux_p.x > 0 or aux_p.y > 0 ) and aux_p.z == 0:
+                # draw aux point if it has been modified
+                lp_A.append([aux_p.x, aux_p.y, 0.0])
+                lp_B.append([aux_p.x, aux_p.y, NiCrMachine.ZLength])
+
+        # append destination point in pathshape A
+        lp_A.append(FreeCAD.ActiveDocument.getObject(fp.PathName).RawPath[0][fp.PathIndex])
+        lp_B.append(FreeCAD.ActiveDocument.getObject(fp.PathName).RawPath[1][fp.PathIndex])
+        # joint both lists
+        lp = (lp_A, lp_B)
+        # create the shape to representate link in 3d space
+        fp.Shape = PathToShape(lp)
+
+
+class InitialPathViewProvider:
+    def __init__(self,obj):
+        obj.Proxy = self
+
+
+class FinalPath:
+    def __init__(self, obj, selObj):
+        obj.addProperty('App::PropertyString',
+                        'PathName',
+                        'Link Data').PathName = selObj.Object.Name
+
+        obj.addProperty('App::PropertyInteger',
+                        'PathIndex',
+                        'Link Data').PathIndex = pointFromPath(selObj.SubObjects[0].Point,
+                                                               selObj.Object.RawPath)
+
+        obj.addProperty('App::PropertyFloat',
+                        'CutSpeed',
+                        'Path Settings').CutSpeed = 0.0
+
+        obj.addProperty('App::PropertyFloat',
+                        'WireTemperature',
+                        'Path Settings').WireTemperature = 0.0
+
+        # add 5 control points
+        for i in range(5):
+            obj.addProperty('App::PropertyVector',
+                            'ControlPoint' + str(i),
+                            'Path Control Points')
+
+        obj.addProperty('App::PropertyBool',
+                        'PowerOffMachine',
+                        'Path Settings').PowerOffMachine = True
+
+        obj.addProperty('App::PropertyBool',
+                        'EnableReturnPath',
+                        'Path Settings').EnableReturnPath = True
+
+        obj.addProperty('App::PropertyBool',
+                        'update').update = False
+
+        obj.Proxy = self
+        # create for the first time
+        NiCrMachine = FreeCAD.ActiveDocument.NiCrMachine
+        lp_A = []  # link_path_A (machine side A = lower Z)
+        lp_B = []  # link_path_A (machine side A = lower Z)
+        # append initial point from pathshape A
+        lp_A.append(FreeCAD.ActiveDocument.getObject(obj.PathName).RawPath[0][obj.PathIndex])
+        lp_B.append(FreeCAD.ActiveDocument.getObject(obj.PathName).RawPath[1][obj.PathIndex])
+        # append destination point in pathshape A
+        lp_A.append(NiCrMachine.VirtualMachineZero)
+        lp_B.append(NiCrMachine.VirtualMachineZero + FreeCAD.Vector(0, 0, NiCrMachine.ZLength))
+        # joint both lists
+        lp = (lp_A, lp_B)
+        # create the shape to representate link in 3d space
+        obj.Shape = PathToShape(lp)
+
+    def onChanged(self, fp, prop):
+        pass
+
+    def execute(self, fp):
+        NiCrMachine = FreeCAD.ActiveDocument.NiCrMachine
+        lp_A = []  # link_path_A (machine side A = lower Z)
+        lp_B = []  # link_path_A (machine side A = lower Z)
+        # append initial point from pathshape A
+        lp_A.append(FreeCAD.ActiveDocument.getObject(fp.PathName).RawPath[0][fp.PathIndex])
+        lp_B.append(FreeCAD.ActiveDocument.getObject(fp.PathName).RawPath[1][fp.PathIndex])
+        # append aux control points
+        for i in range(5):
+            aux_p = fp.getPropertyByName('ControlPoint' + str(i))
+            if ( aux_p.x > 0 or aux_p.y > 0 ) and aux_p.z == 0:
+                # draw aux point if it has been modified
+                lp_A.append([aux_p.x, aux_p.y, 0.0])
+                lp_B.append([aux_p.x, aux_p.y, NiCrMachine.ZLength])
+
+        # append destination point in pathshape A
+        lp_A.append(NiCrMachine.VirtualMachineZero)
+        lp_B.append(NiCrMachine.VirtualMachineZero + FreeCAD.Vector(0, 0, NiCrMachine.ZLength))
+        # joint both lists
+        lp = (lp_A, lp_B)
+        # create the shape to representate link in 3d space
+        fp.Shape = PathToShape(lp)
+
+
+class FinalPathViewProvider:
+    def __init__(self, obj):
+        obj.Proxy = self
+
+
+# NiCrPath Functions ----------------------------------------------------------
+def CreateCompleteRawPath():
+    # recursive link explorer function
+    def exploreLink(lobj):
+        # explore links and add partial RawPath to the build list
+        # auxiliar points
+        for i in range(5):
+            aux_p = lobj.getPropertyByName('ControlPoint' + str(i))
+            if (aux_p.x > 0 or aux_p.y > 0) and aux_p.z == 0:
+                # draw aux point if it has been modified
+                pr_A.append((aux_p.x, aux_p.y, 0))
+                pr_B.append((aux_p.x, aux_p.y, FreeCAD.ActiveDocument.NiCrMachine.ZLength))
+
+        # destination point -> taken from the shapepath
+        destPath = FreeCAD.ActiveDocument.getObject(lobj.PathNameB)
+        # append partial shapepath
+        trigger = False
+        for i in range(len(destPath.RawPath[0])+1):
+            if not(trigger):
+                n = i + lobj.PathIndexB
+
+            if n == len(destPath.RawPath[0]) or trigger:
+                n = i + lobj.PathIndexB - len(destPath.RawPath[0])
+                trigger = True
+
+            # look for link that derivates from this path
+            if i > 0:
+                for obj in FreeCAD.ActiveDocument.Objects:
+                    try:
+                        if obj.PathIndexA == n and obj.PathNameA == destPath.Name:
+                            pr_A.append(destPath.RawPath[0][n])
+                            pr_B.append(destPath.RawPath[1][n])
+                            exploreLink(obj)
+                    except:
+                        pass
+
+            pr_A.append(destPath.RawPath[0][n])
+            pr_B.append(destPath.RawPath[1][n])
+
+    pr_A = []  # partial route A
+    pr_B = []  # partial route B
+    # initial path and shapepath ----------------------------------------------
+    iphobj = FreeCAD.ActiveDocument.InitialPath
+    for i in range(5):
+        aux_p = iphobj.getPropertyByName('ControlPoint' + str(i))
+        if (aux_p.x > 0 or aux_p.y > 0) and aux_p.z == 0:
+            # draw aux point if it has been modified
+            pr_A.append((aux_p.x, aux_p.y, 0))
+            pr_B.append((aux_p.x, aux_p.y, FreeCAD.ActiveDocument.NiCrMachine.ZLength))
+
+    firstSP = FreeCAD.ActiveDocument.getObject(iphobj.PathName)
+    trigger = False
+    for i in range(len(firstSP.RawPath[0])+1):
+        if not(trigger):
+            n = i + iphobj.PathIndex
+
+        if n == len(firstSP.RawPath[0]) or trigger:
+            n = i + iphobj.PathIndex - len(firstSP.RawPath[0])
+            trigger = True
+
+        # look for any link that derivates from this path
+        if i > 0:
+            for obj in FreeCAD.ActiveDocument.Objects:
+                try:
+                    if obj.PathIndexA == n and obj.PathNameA == firstSP.Name:
+                        pr_A.append(firstSP.RawPath[0][n])
+                        pr_B.append(firstSP.RawPath[1][n])
+                        exploreLink(obj)
+                except:
+                    pass
+
+        pr_A.append(firstSP.RawPath[0][n])
+        pr_B.append(firstSP.RawPath[1][n])
+
+    # clean geometry
+    cl_A = []
+    cl_B = []
+    pr_A.append(pr_A[0])
+    pr_B.append(pr_B[0])
+    for i in range(len(pr_A)-1):
+        Av0 = pr_A[i]
+        Av1 = pr_A[i+1]
+        append = True
+        if Av0[0] == Av1[0] and Av0[1] == Av1[1] and Av0[2] == Av1[2]:
+            append = False
+
+        if append:
+            cl_A.append(pr_A[i])
+            cl_B.append(pr_B[i])
+
+    complete_raw_path = (cl_A, cl_B)
+    return complete_raw_path
+
+#runSimulation(CreateCompleteRawPath())
 
 def ShapeToNiCrPath(selected_object, precision, reverse=False):
     # Creates the wire path for an input shape. Returns a list of points with
@@ -219,41 +612,15 @@ def ShapeToNiCrPath(selected_object, precision, reverse=False):
     return wirepath
 
 
-def PathToShape( point_list ):
-    # creates a compound of face from a NiCr point list to representate wire
+def PathToShape(point_list):
+    # creates a compound of faces from a NiCr point list to representate wire
     # trajectory
-    """ V0
-    path_compound = []
-    for i in range( len( point_list[0] ) -1):
-        if i == len( point_list[0] ) -1:
-            PA_0 = tuple(point_list[0][i])
-            PA_1 = tuple(point_list[0][0])
-            PB_0 = tuple(point_list[1][i])
-            PB_1 = tuple(point_list[1][0])
-
-        else:
-            PA_0 = tuple(point_list[0][i])
-            PA_1 = tuple(point_list[0][i+1])
-            PB_0 = tuple(point_list[1][i])
-            PB_1 = tuple(point_list[1][i+1])
-
-        w = Part.Wire( [ Part.makeLine( PA_0, PA_1 ),
-                         Part.makeLine( PA_1, PB_1 ),
-                         Part.makeLine( PB_1, PB_0 ),
-                         Part.makeLine( PB_0, PA_0 ) ] )
-
-        path_compound.append( w )
-
-    return Part.makeCompound( path_compound )
-    """
-    # V1 -> creates surfaces instead of a wire
-    # point_list.append(point_list[0])
     comp = []
     for i in range(len(point_list[0])-1):
-        pa_0 = FreeCAD.Vector(point_list[0][i])
-        pa_1 = FreeCAD.Vector(point_list[0][i+1])
-        pb_0 = FreeCAD.Vector(point_list[1][i])
-        pb_1 = FreeCAD.Vector(point_list[1][i+1])
+        pa_0 = FreeCAD.Vector(tuple(point_list[0][i]))
+        pa_1 = FreeCAD.Vector(tuple(point_list[0][i+1]))
+        pb_0 = FreeCAD.Vector(tuple(point_list[1][i]))
+        pb_1 = FreeCAD.Vector(tuple(point_list[1][i+1]))
         l0 = Part.Line(pa_0, pa_1).toShape()
         l1 = Part.Line(pb_0, pb_1).toShape()
         f = Part.makeLoft([l0, l1])
@@ -261,60 +628,7 @@ def PathToShape( point_list ):
 
     return Part.makeCompound(comp)
 
-# wirepath python object class
-class WirePath:
-    def __init__(self, obj, selObj):
-        obj.addProperty('App::PropertyString',
-                        'Object_Name',
-                        'Path Properties').Object_Name = selObj.Name
 
-        obj.addProperty('App::PropertyFloat',
-                        'Wire_Speed',
-                        'Path Properties').Wire_Speed = 10.0
-
-        obj.addProperty('App::PropertyFloat',
-                        'Wire_Temperature',
-                        'Path Properties').Wire_Temperature = 100.0
-
-        obj.addProperty('App::PropertyFloat',
-                        'Precision',
-                        'Path Properties').Precision = 5.0
-
-        obj.addProperty('App::PropertyBool',
-                        'Reverse',
-                        'Path Properties').Reverse = False
-
-        obj.addProperty('App::PropertyBool',
-                        'Update_Path',
-                        'Path Properties').Update_Path = False
-
-        obj.addProperty('App::PropertyBool',
-                        'Show_Machine_Path',
-                        'PathProperties').Show_Machine_Path = False
-
-        obj.addProperty('App::PropertyPythonObject',
-                        'RawPath')
-
-        obj.Proxy = self
-        # execute
-        obj.RawPath = ShapeToNiCrPath(selObj, obj.Precision)
-        obj.Shape = PathToShape(obj.RawPath)
-        selObj.ViewObject.Visibility = False
-
-    def execute(self, fp):
-        obj = FreeCAD.ActiveDocument.getObject(fp.Object_Name)
-        fp.RawPath = ShapeToNiCrPath(obj, fp.Precision, reverse=fp.Reverse)
-        fp.Shape = PathToShape(fp.RawPath)
-
-
-class WirePathViewProvider:
-    def __init__(self, obj):
-        obj.Proxy = self
-
-    def getIcon(self):
-        import os
-        __dir__ = os.path.dirname(__file__)
-        return __dir__ + '/icons/WirePath.svg'
 
 
 # routing between WirePaths (wirepath path link)
@@ -327,198 +641,6 @@ def pointFromPath(vector, raw_path):
             Fv = FreeCAD.Vector(v[0], v[1], v[2])
             if (Fv-vector).Length < 0.001:
                 return i
-
-
-class LinkPath:
-    def __init__(self, obj):
-        # retrieve user selection
-        ObjA = FreeCAD.Gui.Selection.getSelectionEx()[0].Object
-        PA = FreeCAD.Gui.Selection.getSelectionEx()[0].SubObjects[0]
-        ObjB = FreeCAD.Gui.Selection.getSelectionEx()[1].Object
-        PB = FreeCAD.Gui.Selection.getSelectionEx()[1].SubObjects[0]
-        # link object properties
-        obj.addProperty('App::PropertyString',
-                        'WirePathA',
-                        'Link Properties').WirePathA = ObjA.Name
-
-        obj.addProperty('App::PropertyString',
-                        'WirePathB',
-                        'Link Properties').WirePathB = ObjB.Name
-
-        obj.addProperty('App::PropertyInteger',
-                        'LinkPointA',
-                        'Link Properties').LinkPointA = pointFromPath(PA.Point, ObjA.RawPath)
-
-        obj.addProperty('App::PropertyInteger',
-                        'LinkPointB',
-                        'Link Properties').LinkPointB = pointFromPath(PB.Point, ObjB.RawPath)
-
-        obj.Proxy = self
-        PathObjA = FreeCAD.ActiveDocument.getObject(obj.WirePathA)
-        PathObjB = FreeCAD.ActiveDocument.getObject(obj.WirePathB)
-        PA_0 = PathObjA.RawPath[0][obj.LinkPointA]
-        PB_0 = PathObjA.RawPath[1][obj.LinkPointA]
-        PA_1 = PathObjB.RawPath[0][obj.LinkPointB]
-        PB_1 = PathObjB.RawPath[1][obj.LinkPointB]
-        obj.Shape = self.createLinkShape(PA_0, PA_1, PB_0, PB_1)
-
-    def execute(self, fp):
-        PathObjA = FreeCAD.ActiveDocument.getObject(fp.WirePathA)
-        PathObjB = FreeCAD.ActiveDocument.getObject(fp.WirePathB)
-        PA_0 = PathObjA.RawPath[0][fp.LinkPointA]
-        PA_1 = PathObjA.RawPath[1][fp.LinkPointA]
-        PB_0 = PathObjB.RawPath[0][fp.LinkPointB]
-        PB_1 = PathObjB.RawPath[1][fp.LinkPointB]
-        fp.Shape = self.createLinkShape(PA_0, PA_1, PB_0, PB_1)
-
-    def createLinkShape(self, PA_0, PA_1, PB_0, PB_1):
-        PA_0 = (PA_0[0], PA_0[1], PA_0[2])
-        PA_1 = (PA_1[0], PA_1[1], PA_1[2])
-        PB_0 = (PB_0[0], PB_0[1], PB_0[2])
-        PB_1 = (PB_1[0], PB_1[1], PB_1[2])
-        LA = Part.makeLine(PA_0, PA_1)
-        LB = Part.makeLine(PB_0, PB_1)
-        return Part.makeLoft([LA, LB])
-
-
-class LinkPathViewObject:
-    def __init__(self, obj):
-        obj.Proxy = self
-
-    def getIcon(self):
-        import os
-        __dir__ = os.path.dirname(__file__)
-        return __dir__ + '/icons/PathLink.svg'
-
-
-class LinkZero:
-    def __init__(self, obj):
-        Path = FreeCAD.Gui.Selection.getSelectionEx()[0].Object
-        Point = FreeCAD.Gui.Selection.getSelectionEx()[0].SubObjects[0].Point
-        obj.addProperty('App::PropertyBool',
-                        'DirectPath',
-                        'Path Options').DirectPath = False
-
-        obj.addProperty('App::PropertyBool',
-                        'Reverse',
-                        'Path Options').Reverse = False
-
-        obj.addProperty('App::PropertyInteger',
-                        'LinkPoint').LinkPoint = pointFromPath(Point, Path.RawPath)
-
-        obj.addProperty('App::PropertyString',
-                        'PathName').PathName = Path.Name
-
-        obj.Proxy = self
-        # create for the first time
-        obj.Shape = self.linkZeroToPoint(obj.PathName, obj.LinkPoint, obj.DirectPath)
-
-    def onChanged(self, fp, prop):
-        if prop == 'DirectPath' or prop == 'Reverse':
-            fp.Shape = self.linkZeroToPoint(fp.PathName, fp.LinkPoint, fp.DirectPath)
-
-
-    def execute(self, fp):
-        pass
-
-    def linkZeroToPoint(self, path_name, link_point, DirectPath):
-        Zero = FreeCAD.ActiveDocument.NiCrMachine.VirtualMachineZero
-        MachineZ = FreeCAD.ActiveDocument.NiCrMachine.ZLength
-        FrameDiam = FreeCAD.ActiveDocument.NiCrMachine.FrameDiameter
-        PointA = FreeCAD.ActiveDocument.getObject(path_name).RawPath[0][link_point]
-        PointB = FreeCAD.ActiveDocument.getObject(path_name).RawPath[1][link_point]
-        # convert PointA and PointB from list to freecad vector
-        PointA = FreeCAD.Vector(PointA[0], PointA[1], PointA[2])
-        PointB = FreeCAD.Vector(PointB[0], PointB[1], PointB[2])
-        # Machine Zero position
-        PZA = Zero + FreeCAD.Vector(0, 0, FrameDiam*(1.1))
-        PZB = Zero + FreeCAD.Vector(0, 0, FrameDiam*(1.1) + MachineZ)
-        # determine longest Y between PointA and PointB
-        ly = PointA[1]
-        if PointA[1] < PointB[1]:
-            ly = PointB[1]
-
-        # build auxiliar points for square aproximation trajectory(DirectPath = False)
-        if not(DirectPath):
-            auxPA = PZA + FreeCAD.Vector(0, ly, 0)
-            auxPB = PZB + FreeCAD.Vector(0, ly, 0)
-
-            LZAauxA = Part.makeLine(PZA, auxPA)
-            LZBauxB = Part.makeLine(PZB, auxPB)
-            LauxAPointA = Part.makeLine(auxPA, PointA)
-            LauxBPointB = Part.makeLine(auxPB, PointB)
-
-            Path0 = Part.makeLoft([LZAauxA, LZBauxB])
-            Path1 = Part.makeLoft([LauxAPointA, LauxBPointB])
-
-            comp = Part.makeCompound([Path0, Path1])
-
-        # direct approximation trajectory (DirectPath = True)
-        else:
-            LZAPointA = Part.makeLine(PZA, PointA)
-            LZBPointB = Part.makeLine(PZA, PointA)
-            Path = Part.makeLoft([LZAPointA, LZBPointB])
-            comp = Part.makeCompound([Path])
-
-        return comp
-
-
-class LinkZeroViewProvider:
-    def __init__(self, obj):
-        obj.Proxy = self
-
-    def getIcon(self):
-        import os
-        __dir__ = os.path.dirname(__file__)
-        return __dir__ + '/icons/ZeroLink'
-
-
-# Create machine path
-def createFullPath():
-    """
-    This function organizes the sequence (cleans) and concatenates the points
-    of the linked wirepath objects so they form a unique trajectory of points
-    that forms the complete cutpath (excluding initial and final (return home)
-    trajectories)
-    """
-    ShapeSequence = FreeCAD.ActiveDocument.Wirepath.ShapeSequence
-    link_objects = []
-    for link_name in ShapeSequence:
-        link_objects.append(FreeCAD.ActiveDocument.getObject(link_name))
-
-    wirepath_names = []
-    # path shapes structure
-    for link in link_objects:
-        path_names = []
-        A = (link.WirePathA, link.LinkPointA)
-        path_names.append(A)
-        B = (link.WirePathB, link.LinkPointB)
-        path_names.append(B)
-        for path_name in path_names:
-            apnd = True
-            for n in wirepath_names:
-                if(n[0] == path_name[0]):
-                    apnd = False
-                    break
-
-            if apnd:
-                wirepath_names.append(path_name)
-
-    # raw path concatenation
-    ct_A = []  # stands for complete_trajectory_A
-    ct_B = []  # stands for complete_trajectory_B
-    for wirepath in wirepath_names:
-        raw_path = FreeCAD.ActiveDocument.getObject(wirepath[0]).RawPath
-        for n in range(len(raw_path[0])-wirepath[1]):
-            ct_A.append(raw_path[0][wirepath[1]+n])
-            ct_B.append(raw_path[1][wirepath[1]+n])
-
-        for n in range(wirepath[1]):
-            ct_A.append(raw_path[0][n])
-            ct_B.append(raw_path[1][n])
-
-    complete_trajectory = (ct_A, ct_B)
-    return complete_trajectory
 
 
 def writeNiCrFile(wirepath, wirepath_data, directory):
@@ -621,8 +743,8 @@ def runSimulation(complete_raw_path):
     YA = FreeCAD.ActiveDocument.YA
     YB = FreeCAD.ActiveDocument.YB
     # ofsets
-    xoff = FreeCAD.ActiveDocument.NiCrMachine.FrameDiameter*1.5
-    yoff = FreeCAD.ActiveDocument.NiCrMachine.FrameDiameter*1.8
+    xoff = FreeCAD.ActiveDocument.NiCrMachine.FrameDiameter*1.5*0
+    yoff = FreeCAD.ActiveDocument.NiCrMachine.FrameDiameter*1.8*0
     # animation loop
     wire_t_list = []
     for i in range(len(machine_path[0])):
@@ -657,4 +779,4 @@ def runSimulation(complete_raw_path):
         YB.Placement = FreeCAD.Placement(base_YB, rot_XB)
         # gui update
         FreeCAD.Gui.updateGui()
-        time.sleep(0.01)
+        #time.sleep(0.01)

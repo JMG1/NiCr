@@ -40,22 +40,38 @@ class SimMachine:
                          'ZLength',
                          'Machine Geometry' ).ZLength = 800.0
 
-        obj.addProperty( 'App::PropertyFloat',
-                         'FrameDiameter',
-                         'Machine Geometry' ).FrameDiameter = 30.0
+        obj.addProperty('App::PropertyFloat',
+                        'FrameDiameter',
+                        'Machine Geometry').FrameDiameter = 30.0
 
         obj.addProperty('App::PropertyVector',
-                        'VirtualMachineZero').VirtualMachineZero = FreeCAD.Vector(0, 0, 0)
+                        'VirtualMachineZero',
+                        'Machine Geometry').VirtualMachineZero = FreeCAD.Vector(0, 0, 0)
+
+        obj.addProperty('App::PropertyBool',
+                        'ReturnHome',
+                        'Simulation').ReturnHome = False
 
         obj.Proxy = self
         self.addMachineToDocument( obj.FrameDiameter, obj.XLength, obj.YLength, obj.ZLength, created=False )
         obj.VirtualMachineZero = FreeCAD.Vector(obj.FrameDiameter*1.6, obj.FrameDiameter*1.8, 0)
 
 
-    def onChanged( self, fp, prop):
+    def onChanged(self, fp, prop):
         try:
             if prop == 'XLength' or prop == 'YLength' or prop == 'ZLength' or prop == 'FrameDiameter':
                 self.addMachineToDocument( fp.FrameDiameter, fp.XLength, fp.YLength, fp.ZLength )
+
+            if prop == 'ReturnHome' and fp.ReturnHome:
+                # reset machine position
+                homePlm = FreeCAD.Placement(FreeCAD.Vector(0,0,0),
+                                            FreeCAD.Rotation(FreeCAD.Vector(0,0,0),0))
+                FreeCAD.ActiveDocument.getObject('XA').Placement = homePlm
+                FreeCAD.ActiveDocument.getObject('XB').Placement = homePlm
+                FreeCAD.ActiveDocument.getObject('YA').Placement = homePlm
+                FreeCAD.ActiveDocument.getObject('YB').Placement = homePlm
+                fp.ReturnHome = False
+
 
         except AttributeError:
             pass
