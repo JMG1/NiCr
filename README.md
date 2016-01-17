@@ -6,14 +6,14 @@ This project is comprised of three parts:
 
 #### Shape modelling and .nicr path generator:
 
-The shape modelling and machine code generation (wich has the extension '.nicr' and a syntax similar to GCode) takes place inside FreeCAD with the use of a workbench specifically created for this machine.
+The shape modelling and machine code generation (which has the extension '.nicr' and a syntax similar to GCode) takes place inside FreeCAD with the use of a workbench specifically created for this machine.
 
 Trying to keep it simple, the workbench workflow is as follows:
 You place the 3D shapes inside a virtual machine (whose dimensions must be in concordance with your physical machine), then you create the paths for this shapes (wich have several options like accuracy or cut direction) and finally, you establish links between those paths in the way you want them to be cutted. 
 
-For a better understanding I have recorded [this video] (https://www.youtube.com/watch?v=IMD8KxX-TPg)
+For a better understanding I have recorded [this video] (https://www.youtube.com/watch?v=IMD8KxX-TPg) that shows the current state of this workbench.
 
-You can find the NiCr workbench for FreeCAD and more info about it in the 'Workbench' folder
+You can find the NiCr workbench for FreeCAD, installation guide and more info in the 'Workbench' folder
 
 #### Machine movement using Arduino:
 The .nicr file is read by an Arduino Mega that is executing a custom firmware specially created for this machine. This Arduino Mega executes the given commands through a RAMPS shield. The electronics are very simple and can be easily swapped from a 3D printer.
