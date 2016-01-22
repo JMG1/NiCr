@@ -3,7 +3,9 @@
 This is a dedicated FreeCAD workbench to create and simulate toolpaths('wirepaths') for the NiCr machine.
 At the moment it is in heavy development.
 
-Workbench demo video (current: DevUpdate 0 ): https://www.youtube.com/watch?v=8snH_p_onoQ
+Workbench demo videos:
+DevUpdate 1 (current): https://www.youtube.com/watch?v=IMD8KxX-TPg
+DevUpdate 0: https://www.youtube.com/watch?v=8snH_p_onoQ
 
 
 ### Current Features*:
