@@ -86,10 +86,10 @@ class NiCrMachine:
 
             if prop == 'HideWireTrajectory':
                 for obj in FreeCAD.ActiveDocument.WireTrajectory.Group:
-                    obj.ViewObject.Visibility = fp.HideWireTrajectory
+                    obj.ViewObject.Visibility = fp.HideWireTrajectory + 1
 
             if prop == 'HideWire':
-                FreeCAD.ActiveDocument.Wire.ViewObject.Visibility = fp.HideWire
+                FreeCAD.ActiveDocument.Wire.ViewObject.Visibility = fp.HideWire + 1
 
         except AttributeError:
             pass

@@ -175,7 +175,7 @@ class SaveWirePath:
     def GetResources(self):
         return {'Pixmap': __dir__ + '/icons/SavePath.svg',
                 'MenuText': 'Save Path',
-                'ToolTip': 'Exports current wirepath to a .nicr file'}
+                'ToolTip': 'Export wirepath as a .nicr file'}
 
     def IsActive(self):
         try:
@@ -190,9 +190,9 @@ class SaveWirePath:
 
 class ImportWirePath:
     def GetResources(self):
-        return {'Pixmap': __dir__ + '/icons/SavePath.svg',
+        return {'Pixmap': __dir__ + '/icons/LoadPath.svg',
                 'MenuText': 'Import WirePath',
-                'ToolTip': 'Exports current wirepath to a .nicr file'}
+                'ToolTip': 'Import a .nicr file'}
 
     def IsActive(self):
         return True
