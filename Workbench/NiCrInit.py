@@ -25,13 +25,13 @@
 import os
 import FreeCAD
 import FreeCADGui
-import Part
 import NiCrSimMachine as NiCrSM
 import NiCrPath
 
 __dir__ = os.path.dirname(__file__)
 
-class CreateSimMachine:
+
+class CreateNiCrMachine:
     def GetResources(self):
         return {'Pixmap': __dir__ + '/icons/CreateMachine.svg',
                 'MenuText': 'Add Simulation Machine',
@@ -40,7 +40,7 @@ class CreateSimMachine:
     def IsActive(self):
         if FreeCADGui.ActiveDocument:
             try:
-                a=FreeCAD.ActiveDocument.SimMachine.Name
+                a=FreeCAD.ActiveDocument.NiCrMachine.Name
                 return False
             except:
                 return True
@@ -48,23 +48,22 @@ class CreateSimMachine:
     def Activated(self):
         # check for already existing machines:
         m_created = False
-        if FreeCAD.ActiveDocument.getObject('SimMachine'):
+        if FreeCAD.ActiveDocument.getObject('NiCrMachine'):
             # yes, this is stupid
             m_created = True
 
         if not(m_created):
             # workaround
-            m = FreeCAD.ActiveDocument.addObject('Part::FeaturePython', 'NiCrMachine')
-            FreeCAD.ActiveDocument.addObject('App::DocumentObjectGroup', 'SimMachine')
-            NiCrSM.SimMachine(m)
-            NiCrSM.SimMachineViewProvider(m.ViewObject)
+            m = FreeCAD.ActiveDocument.addObject('App::DocumentObjectGroupPython', 'NiCrMachine')
+            NiCrSM.NiCrMachine(m)
+            NiCrSM.NiCrMachineViewProvider(m.ViewObject)
             FreeCAD.Gui.SendMsgToActiveView('ViewFit')
             FreeCAD.ActiveDocument.recompute()
 
 
-class CreateToolPath:
+class CreateShapePath:
     def GetResources(self):
-        return {'Pixmap': __dir__ + '/icons/WirePath.svg',
+        return {'Pixmap': __dir__ + '/icons/ShapePath.svg',
                 'MenuText': 'Route',
                 'ToolTip': 'Create the wirepaths for the selected objects'}
 
@@ -88,6 +87,7 @@ class CreateToolPath:
             except:
                 WPFolder = FreeCAD.ActiveDocument.addObject('App::DocumentObjectGroupPython', 'WirePath')
                 NiCrPath.WirePathFolder(WPFolder)
+                NiCrPath.WirePathViewProvider(WPFolder)
 
             # create shapepath object
             selObj = selection[i].Object
@@ -171,11 +171,11 @@ class CreatePathLink:
             FreeCAD.ActiveDocument.WirePath.addObject(LinkObj)
 
 
-class SaveToolPath:
+class SaveWirePath:
     def GetResources(self):
         return {'Pixmap': __dir__ + '/icons/SavePath.svg',
                 'MenuText': 'Save Path',
-                'ToolTip': 'Exports current wirepath to a .nicr file'}
+                'ToolTip': 'Export wirepath as a .nicr file'}
 
     def IsActive(self):
         try:
@@ -186,6 +186,19 @@ class SaveToolPath:
 
     def Activated(self):
         NiCrPath.saveNiCrFile()
+
+
+class ImportWirePath:
+    def GetResources(self):
+        return {'Pixmap': __dir__ + '/icons/LoadPath.svg',
+                'MenuText': 'Import WirePath',
+                'ToolTip': 'Import a .nicr file'}
+
+    def IsActive(self):
+        return True
+
+    def Activated(self):
+        NiCrPath.importNiCrFile()
 
 # Animation classes
 class RunPathSimulation:
@@ -203,14 +216,15 @@ class RunPathSimulation:
 
     def Activated(self):
         full_path = NiCrPath.CreateCompleteRawPath()
-        NiCrPath.runSimulation(full_path)
+        NiCrSM.runSimulation(full_path)
         FreeCAD.Console.PrintMessage('Simulation finished\n')
 
 
 
 if FreeCAD.GuiUp:
-    FreeCAD.Gui.addCommand('CreateSimMachine', CreateSimMachine())
-    FreeCAD.Gui.addCommand('CreateToolPath', CreateToolPath())
+    FreeCAD.Gui.addCommand('CreateNiCrMachine', CreateNiCrMachine())
+    FreeCAD.Gui.addCommand('CreateToolPath', CreateShapePath())
     FreeCAD.Gui.addCommand('CreatePathLink', CreatePathLink())
-    FreeCAD.Gui.addCommand('SaveToolPath', SaveToolPath())
+    FreeCAD.Gui.addCommand('SaveWirePath', SaveWirePath())
+    FreeCAD.Gui.addCommand('ImportWirePath', ImportWirePath())
     FreeCAD.Gui.addCommand('RunPathSimulation', RunPathSimulation())

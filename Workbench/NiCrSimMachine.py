@@ -25,7 +25,7 @@
 import FreeCAD
 import Part
 
-class SimMachine:
+class NiCrMachine:
     def __init__( self, obj ):
         # geometric properties
         obj.addProperty( 'App::PropertyFloat',
@@ -50,11 +50,23 @@ class SimMachine:
 
         obj.addProperty('App::PropertyBool',
                         'ReturnHome',
-                        'Simulation').ReturnHome = False
+                        'Animation').ReturnHome = False
+
+        obj.addProperty('App::PropertyBool',
+                        'HideWireTrajectory',
+                        'Animation').HideWireTrajectory = False
+
+        obj.addProperty('App::PropertyBool',
+                        'HideWire',
+                        'Animation').HideWire = False
+
+        obj.addProperty('App::PropertyFloat',
+                        'AnimationDelay',
+                        'Animation',
+                        'Time between animation frames (0.0 = max speed)').AnimationDelay = 0.0
 
         obj.Proxy = self
         self.addMachineToDocument( obj.FrameDiameter, obj.XLength, obj.YLength, obj.ZLength, created=False )
-        obj.VirtualMachineZero = FreeCAD.Vector(obj.FrameDiameter*1.6, obj.FrameDiameter*1.8, 0)
 
 
     def onChanged(self, fp, prop):
@@ -72,6 +84,12 @@ class SimMachine:
                 FreeCAD.ActiveDocument.getObject('YB').Placement = homePlm
                 fp.ReturnHome = False
 
+            if prop == 'HideWireTrajectory':
+                for obj in FreeCAD.ActiveDocument.WireTrajectory.Group:
+                    obj.ViewObject.Visibility = fp.HideWireTrajectory + 1
+
+            if prop == 'HideWire':
+                FreeCAD.ActiveDocument.Wire.ViewObject.Visibility = fp.HideWire + 1
 
         except AttributeError:
             pass
@@ -146,7 +164,7 @@ class SimMachine:
     def addMachineToDocument(self, FrameDiameter, XLength, YLength, ZLength, created=True):
         # temporal workarround until:http://forum.freecadweb.org/viewtopic.php?f=22&t=13337
         #dbm( '0' )
-        mfolder = FreeCAD.ActiveDocument.getObject('SimMachine')
+        mfolder = FreeCAD.ActiveDocument.getObject('NiCrMachine')
         #dbm( '1' )
         # Remove previous machine parts
         if created:
@@ -162,7 +180,7 @@ class SimMachine:
                                            YLength,
                                            ZLength)
         # temporal workaround
-        #mfolder = FreeCAD.ActiveDocument.addObject( 'App::DocumentObjectGroup','SimMachine' )
+        #mfolder = FreeCAD.ActiveDocument.addObject( 'App::DocumentObjectGroup','NiCrMachine' )
         obj_frame = FreeCAD.ActiveDocument.addObject('Part::Feature', 'Frame')
         obj_XA = FreeCAD.ActiveDocument.addObject('Part::Feature', 'XA')
         obj_XB = FreeCAD.ActiveDocument.addObject('Part::Feature', 'XB')
@@ -190,7 +208,7 @@ class SimMachine:
         mfolder.addObject(obj_YB)
 
 
-class SimMachineViewProvider:
+class NiCrMachineViewProvider:
     def __init__(self, obj):
         obj.Proxy = self
 
@@ -205,3 +223,160 @@ class SimMachineViewProvider:
 def dbm(ms):
     # debug messages
     FreeCAD.Console.PrintMessage( '\n' + ms + '\n' )
+
+
+# Machine animation ----------------------------------------------------------
+def runSimulation(complete_raw_path):
+    # FreeCAD.ActiveDocument.WirePath.ViewObject.Visibility = False
+    projected_trajectory_A = []
+    projected_trajectory_B = []
+    Z0 = FreeCAD.ActiveDocument.NiCrMachine.FrameDiameter*1.1*0
+    ZL = FreeCAD.ActiveDocument.NiCrMachine.ZLength
+    Z1 = ZL + Z0 - FreeCAD.ActiveDocument.NiCrMachine.FrameDiameter*0.2
+    for i in range(len(complete_raw_path[0])):
+        PA = complete_raw_path[0][i]
+        PB = complete_raw_path[1][i]
+        proj_A, proj_B = projectEdgeToTrajectory(PA, PB, Z0, Z1)
+        projected_trajectory_A.append(proj_A)
+        projected_trajectory_B.append(proj_B)
+
+    machine_path = (projected_trajectory_A, projected_trajectory_B)
+
+    # simulate machine path
+    import time
+    # create wire
+    try:
+        wire = FreeCAD.ActiveDocument.Wire
+    except:
+        wire = FreeCAD.ActiveDocument.addObject('Part::Feature', 'Wire')
+        FreeCAD.ActiveDocument.NiCrMachine.addObject(wire)
+
+
+    try:
+        # remove previous trajectories
+        for obj in FreeCAD.ActiveDocument.WireTrajectory.Group:
+            FreeCAD.ActiveDocument.removeObject(obj.Name)
+
+        FreeCAD.ActiveDocument.removeObject('WireTrajectory')
+
+    except:
+        pass
+
+    wire_tr_folder = FreeCAD.ActiveDocument.addObject('App::DocumentObjectGroup', 'WireTrajectory')
+    FreeCAD.ActiveDocument.NiCrMachine.addObject(wire_tr_folder)
+    # retrieve machine shapes
+    XA = FreeCAD.ActiveDocument.XA
+    XB = FreeCAD.ActiveDocument.XB
+    YA = FreeCAD.ActiveDocument.YA
+    YB = FreeCAD.ActiveDocument.YB
+    # ofsets
+    xoff = FreeCAD.ActiveDocument.NiCrMachine.FrameDiameter*1.5*0
+    yoff = FreeCAD.ActiveDocument.NiCrMachine.FrameDiameter*1.8*0
+    wire_t_list = []
+    animation_delay = FreeCAD.ActiveDocument.NiCrMachine.AnimationDelay
+    wire_trajectory = FreeCAD.ActiveDocument.addObject('Part::Feature','wire_tr')
+    wire_tr_folder.addObject(wire_trajectory)
+    # n iterator (for wire color)
+    n = 0
+    # visualization color
+    vcolor = FreeCAD.ActiveDocument.WirePath.TrajectoryColor
+    # determine the first value for the wire color
+    if vcolor == 'Speed':
+        mxspeed = FreeCAD.ActiveDocument.WirePath.MaxCutSpeed
+        cpspeed = complete_raw_path[2][n][1]
+        wire_color = WireColor(cpspeed, mxspeed, 'Speed')
+
+    if vcolor == 'Temperature':
+        mxtemp = FreeCAD.ActiveDocument.WirePath.MaxWireTemp
+        cptemp = complete_raw_path[2][n][1]
+        wire_color = WireColor(cptemp, mxtemp, 'Temperature')
+
+    # animation loop
+    for i in range(len(machine_path[0])):
+        pa = machine_path[0][i]
+        pb = machine_path[1][i]
+        # draw wire
+        w = Part.makeLine(pa, pb)
+        wire.Shape = w
+        wire.ViewObject.LineColor = wire_color
+        if i < complete_raw_path[2][n][0]:
+            # draw wire trajectory
+            wire_t_list.append(w)
+            wire_trajectory.Shape = Part.makeCompound(wire_t_list)
+            wire_trajectory.ViewObject.LineColor = wire_color
+
+        else:
+            n += 1
+            # create new wire trajectory object
+            wire_trajectory = FreeCAD.ActiveDocument.addObject('Part::Feature', 'wire_tr')
+            wire_tr_folder.addObject(wire_trajectory)
+            # reset compound list
+            wire_t_list = []
+            wire_t_list.append(w)
+            wire_trajectory.Shape = Part.makeCompound(wire_t_list)
+            # establish wire color
+            if vcolor == 'Speed':
+                mxspeed = FreeCAD.ActiveDocument.WirePath.MaxCutSpeed
+                cpspeed = complete_raw_path[2][n][1]
+                wire_color = WireColor(cpspeed, mxspeed, 'Speed')
+
+            if vcolor == 'Temperature':
+                mxtemp = FreeCAD.ActiveDocument.WirePath.MaxWireTemp
+                cptemp = complete_raw_path[2][n][1]
+                wire_color = WireColor(cptemp, mxtemp, 'Temperature')
+
+            # assign wire color
+            wire_trajectory.ViewObject.LineColor = wire_color
+
+        # move machine ---------------------------------------------------
+        # side A
+        # -XA
+        base_XA = XA.Placement.Base
+        rot_XA = XA.Placement.Rotation
+        base_XA = FreeCAD.Vector(pa.x-xoff, base_XA.y, base_XA.z)
+        XA.Placement = FreeCAD.Placement(base_XA, rot_XA)
+        # -YA
+        base_YA = YA.Placement.Base
+        rot_YA = YA.Placement.Rotation
+        base_YA = FreeCAD.Vector(pa.x-xoff, pa.y-yoff, base_XA.z)
+        YA.Placement = FreeCAD.Placement(base_YA, rot_XA)
+        # -XB
+        base_XB = XB.Placement.Base
+        rot_XB = XB.Placement.Rotation
+        base_XB = FreeCAD.Vector(pb.x-xoff, base_XB.y, base_XB.z)
+        XB.Placement = FreeCAD.Placement(base_XB, rot_XB)
+        # -YB
+        base_YB = YB.Placement.Base
+        rot_YB = YB.Placement.Rotation
+        base_YB = FreeCAD.Vector(pb.x-xoff, pb.y-yoff, base_XB.z)
+        YB.Placement = FreeCAD.Placement(base_YB, rot_XB)
+        # gui update -------------------------------------------------------
+        FreeCAD.Gui.updateGui()
+        time.sleep(animation_delay)
+
+
+def projectEdgeToTrajectory(PA, PB, Z0, Z1):
+    # aux function of runSimulation
+    # projects shape points to machine workplanes
+    pa = FreeCAD.Vector(PA[0], PA[1], PA[2])
+    pb = FreeCAD.Vector(PB[0], PB[1], PB[2])
+    line_vector = FreeCAD.Vector(PA[0]-PB[0], PA[1]-PB[1], PA[2]-PB[2]).normalize()
+    projected_pa = pa + line_vector*(pa[2] - Z0)
+    projected_pb = pb - line_vector*(Z1 - pb[2])
+    return projected_pa, projected_pb
+
+
+def WireColor(value, crange, ctype):
+    if ctype == 'Temperature':
+        k = value / crange*1.0
+        r = k
+        g = 0.0
+        b = 1.0 - k
+
+    if ctype == 'Speed':
+        k = value / crange*1.0
+        r = 0.0
+        g = k
+        b = 1.0 - k
+
+    return (r, g, b)

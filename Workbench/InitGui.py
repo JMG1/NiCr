@@ -37,11 +37,11 @@ class NiCrWorkbench(Workbench):
 
     def Initialize(self):
         import NiCrInit
-        self.tools = ['CreateSimMachine',
+        self.tools = ['CreateNiCrMachine',
                       'CreateToolPath',
                       'CreatePathLink',
-                      'CreateZeroLink',
-                      'SaveToolPath',
+                      'SaveWirePath',
+                      'ImportWirePath',
                       'RunPathSimulation']
 
         FreeCAD.t = self.appendToolbar('NiCrWorkbench', self.tools)
