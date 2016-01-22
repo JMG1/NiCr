@@ -171,7 +171,7 @@ class CreatePathLink:
             FreeCAD.ActiveDocument.WirePath.addObject(LinkObj)
 
 
-class SaveToolPath:
+class SaveWirePath:
     def GetResources(self):
         return {'Pixmap': __dir__ + '/icons/SavePath.svg',
                 'MenuText': 'Save Path',
@@ -186,6 +186,19 @@ class SaveToolPath:
 
     def Activated(self):
         NiCrPath.saveNiCrFile()
+
+
+class ImportWirePath:
+    def GetResources(self):
+        return {'Pixmap': __dir__ + '/icons/SavePath.svg',
+                'MenuText': 'Import WirePath',
+                'ToolTip': 'Exports current wirepath to a .nicr file'}
+
+    def IsActive(self):
+        return True
+
+    def Activated(self):
+        NiCrPath.importNiCrFile()
 
 # Animation classes
 class RunPathSimulation:
@@ -203,7 +216,7 @@ class RunPathSimulation:
 
     def Activated(self):
         full_path = NiCrPath.CreateCompleteRawPath()
-        NiCrPath.runSimulation(full_path)
+        NiCrSM.runSimulation(full_path)
         FreeCAD.Console.PrintMessage('Simulation finished\n')
 
 
@@ -212,5 +225,6 @@ if FreeCAD.GuiUp:
     FreeCAD.Gui.addCommand('CreateSimMachine', CreateSimMachine())
     FreeCAD.Gui.addCommand('CreateToolPath', CreateToolPath())
     FreeCAD.Gui.addCommand('CreatePathLink', CreatePathLink())
-    FreeCAD.Gui.addCommand('SaveToolPath', SaveToolPath())
+    FreeCAD.Gui.addCommand('SaveWirePath', SaveWirePath())
+    FreeCAD.Gui.addCommand('ImportWirePath', ImportWirePath())
     FreeCAD.Gui.addCommand('RunPathSimulation', RunPathSimulation())

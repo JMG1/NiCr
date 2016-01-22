@@ -32,14 +32,27 @@ from PySide import QtGui
 
 class WirePathFolder:
     def __init__(self, obj):
-        obj.addProperty('App::PropertyVector', 'ZeroPoint')
+        obj.addProperty('App::PropertyVector', 'ZeroPoint', 'Machine Limits')
         obj.addProperty('App::PropertyBool', 'UpdateContent')
-        obj.addProperty('App::PropertyFloat', 'setCutSpeed')
-        obj.addProperty('App::PropertyInteger', 'setWireTemp')
+        obj.addProperty('App::PropertyFloat', 'MaxCutSpeed', 'Machine Limits')
+        obj.addProperty('App::PropertyFloat', 'MaxWireTemp', 'Machine Limits')
+        obj.addProperty('App::PropertyFloat', 'setCutSpeed', 'PathSettings')
+        obj.addProperty('App::PropertyFloat', 'setWireTemp', 'PathSettings')
+        obj.addProperty('App::PropertyEnumeration', 'TrajectoryColor', 'View')
+        obj.TrajectoryColor = ['Speed', 'Temperature']
         obj.Proxy = self
 
     def execute(self, fp):
-        pass
+        for obj in FreeCAD.ActiveDocument.Objects:
+            try:
+                if obj.CutSpeed == 0:
+                    obj.CutSpeed = fp.setCutSpeed
+
+                if obj.WireTemperature == 0:
+                    obj.WireTemperature = fp.setWireTemp
+
+            except:
+                pass
 
 
 class ShapePath:
@@ -86,7 +99,17 @@ class ShapePath:
         shape = FreeCAD.ActiveDocument.getObject(fp.ShapeName)
         fp.RawPath = ShapeToNiCrPath(shape, fp.PointDensity, reverse=fp.Reverse)
         fp.Shape = PathToShape(fp.RawPath)
-        # TODO send signal to any child object for update
+        # remove child and parent link objects (they need to be re-defined)
+        for obj in FreeCAD.ActiveDocument.Objects:
+            try:
+                if obj.PathNameA == fp.Name:
+                    FreeCAD.ActiveDocument.removeObject(obj.Name)
+
+                if obj.PathNameB == fp.Name:
+                    FreeCAD.ActiveDocument.removeObject(obj.Name)
+
+            except AttributeError:
+                pass
 
 
 class ShapePathViewProvider:
@@ -353,9 +376,11 @@ class FinalPathViewProvider:
 
 # NiCrPath Functions ----------------------------------------------------------
 def CreateCompleteRawPath():
-    # recursive link explorer function
+    # recursive link-explorer function
     def exploreLink(lobj):
         # explore links and add partial RawPath to the build list
+        # temperature and speed commands
+        route_commands.append([len(pr_A)-1, lobj.CutSpeed, lobj.WireTemperature])
         # auxiliar points
         for i in range(5):
             aux_p = lobj.getPropertyByName('ControlPoint' + str(i))
@@ -366,6 +391,8 @@ def CreateCompleteRawPath():
 
         # destination point -> taken from the shapepath
         destPath = FreeCAD.ActiveDocument.getObject(lobj.PathNameB)
+        # destination path temperature and speed commands
+        route_commands.append([len(pr_A)-1, destPath.CutSpeed, destPath.WireTemperature])
         # append partial shapepath
         trigger = False
         for i in range(len(destPath.RawPath[0])+1):
@@ -390,10 +417,13 @@ def CreateCompleteRawPath():
             pr_A.append(destPath.RawPath[0][n])
             pr_B.append(destPath.RawPath[1][n])
 
+    # init of the routing script--------------------------------------------
     pr_A = []  # partial route A
     pr_B = []  # partial route B
+    route_commands = [] # stores commands issued along the route(speed, temp..)
     # initial path and shapepath ----------------------------------------------
     iphobj = FreeCAD.ActiveDocument.InitialPath
+    route_commands.append([len(pr_A)-1, iphobj.CutSpeed, iphobj.WireTemperature])
     for i in range(5):
         aux_p = iphobj.getPropertyByName('ControlPoint' + str(i))
         if (aux_p.x > 0 or aux_p.y > 0) and aux_p.z == 0:
@@ -401,7 +431,9 @@ def CreateCompleteRawPath():
             pr_A.append((aux_p.x, aux_p.y, 0))
             pr_B.append((aux_p.x, aux_p.y, FreeCAD.ActiveDocument.NiCrMachine.ZLength))
 
+
     firstSP = FreeCAD.ActiveDocument.getObject(iphobj.PathName)
+    route_commands.append([len(pr_A)-1, firstSP.CutSpeed, firstSP.WireTemperature])
     trigger = False
     for i in range(len(firstSP.RawPath[0])+1):
         if not(trigger):
@@ -425,6 +457,16 @@ def CreateCompleteRawPath():
         pr_A.append(firstSP.RawPath[0][n])
         pr_B.append(firstSP.RawPath[1][n])
 
+    # initial path speed and temperature commands
+    route_commands.append([len(pr_A)-1, iphobj.CutSpeed, iphobj.WireTemperature])
+    # append initial path reversed
+    for i in range(4, -1, -1):
+        aux_p = iphobj.getPropertyByName('ControlPoint' + str(i))
+        if (aux_p.x > 0 or aux_p.y > 0) and aux_p.z == 0:
+            # draw aux point if it has been modified
+            pr_A.append((aux_p.x, aux_p.y, 0))
+            pr_B.append((aux_p.x, aux_p.y, FreeCAD.ActiveDocument.NiCrMachine.ZLength))
+
     # clean geometry
     cl_A = []
     cl_B = []
@@ -436,15 +478,19 @@ def CreateCompleteRawPath():
         append = True
         if Av0[0] == Av1[0] and Av0[1] == Av1[1] and Av0[2] == Av1[2]:
             append = False
+            # re-arrange commands (the have to be displaced as we are removing
+            # points from the route)
+            for cmd in route_commands:
+                if cmd[0] > i:
+                    cmd[0] -= 1
 
         if append:
             cl_A.append(pr_A[i])
             cl_B.append(pr_B[i])
 
-    complete_raw_path = (cl_A, cl_B)
+    complete_raw_path = (cl_A, cl_B, route_commands)
     return complete_raw_path
 
-#runSimulation(CreateCompleteRawPath())
 
 def ShapeToNiCrPath(selected_object, precision, reverse=False):
     # Creates the wire path for an input shape. Returns a list of points with
@@ -480,7 +526,7 @@ def ShapeToNiCrPath(selected_object, precision, reverse=False):
     if reverse:
         transversal_faces.reverse()
 
-    for i in range( len( transversal_faces ) ):
+    for i in xrange( len( transversal_faces ) ):
         face_A = consecutive_faces[i]
         for face_B in transversal_faces:
             v_AB = (face_A.CenterOfMass - face_B.CenterOfMass).Length
@@ -518,7 +564,7 @@ def ShapeToNiCrPath(selected_object, precision, reverse=False):
     discrete_length = precision
     consecutive_faces.append(consecutive_faces[0])
     trajectory = []
-    for i in range(len(consecutive_faces)-1):
+    for i in xrange(len(consecutive_faces)-1):
         face_a = consecutive_faces[i]
         face_b = consecutive_faces[i+1]
         cm_a, cm_b = vertexesInCommon( face_a, face_b )
@@ -596,7 +642,7 @@ def ShapeToNiCrPath(selected_object, precision, reverse=False):
     # -> transform trajectory to a simple list to allow JSON serialization (save list)
     Tr_list_A = []
     Tr_list_B = []
-    for i in range( len( clt[0] ) ):
+    for i in xrange( len( clt[0] ) ):
         PA = ( clt[0][i].x, clt[0][i].y, clt[0][i].z )
         PB = ( clt[1][i].x, clt[1][i].y, clt[1][i].z )
         Tr_list_A.append( PA )
@@ -613,7 +659,7 @@ def ShapeToNiCrPath(selected_object, precision, reverse=False):
 
 
 def PathToShape(point_list):
-    # creates a compound of faces from a NiCr point list to representate wire
+    # creates a compound of faces from a NiCr point list to representate the wire
     # trajectory
     comp = []
     for i in range(len(point_list[0])-1):
@@ -643,29 +689,43 @@ def pointFromPath(vector, raw_path):
                 return i
 
 
-def writeNiCrFile(wirepath, wirepath_data, directory):
+def writeNiCrFile(wirepath, directory):
     """
     This functions creates a file containing the .nicr instructions that can be
     read directly by the machine (GCode-like).
-    wirepath = ((A0,A1...An),(B0,B1...Bn)) -> An, Bn == 3D point (x,y,z)
-    wirepath_data = ( name, settings, feed_speed, temperature...)
+    More info about the .nicr language can be found here: > link <
+    wirepath[0],wirepath[1] > trajectory points
+    wirepath[2] -> wire speed and temperature
     directory = '/home/user/whatever...''
     """
     nicr_file = open(directory + '.nicr', 'w')
+    # retrieve basic info
+    path_name = FreeCAD.ActiveDocument.WirePath.Label
+    mxspeed = FreeCAD.ActiveDocument.WirePath.MaxCutSpeed
+    mxtemp = FreeCAD.ActiveDocument.WirePath.MaxWireTemp
+    mzero = FreeCAD.ActiveDocument.NiCrMachine.VirtualMachineZero
+    zlength = FreeCAD.ActiveDocument.NiCrMachine.ZLength
     # write header
-    nicr_file.write('PATH NAME:' + wirepath_data[1] + '\n')
+    nicr_file.write('PATH NAME:' + path_name + '\n')
     nicr_file.write('DATE: ' + time.strftime("%c") + '\n')
+    nicr_file.write('Exporter version 0.2\n')
     nicr_file.write('SETTINGS ------------------------- \n')
-    nicr_file.write('FEED SPEED: ' + str(wirepath_data[2]) + '\n')
-    nicr_file.write('WIRE TEMP: ' + str(wirepath_data[3]) + '\n')
+    nicr_file.write('Z AXIS LENGTH: ' + str(zlength) + '\n')
+    nicr_file.write('MAX FEED SPEED: ' + str(mxspeed) + '\n')
+    nicr_file.write('MAX WIRE TEMPERATURE: ' + str(mxtemp) + '\n')
     nicr_file.write('END SETTINGS --------------------- \n')
     # write machine start
     nicr_file.write('INIT\n')
     nicr_file.write('POWER ON\n')
-    nicr_file.write('WIRE ' + str(wirepath_data[3]) + '\n')
     # write trajectories with compensation for virtual machine ZeroPoint <----
     zeroPoint = FreeCAD.ActiveDocument.NiCrMachine.VirtualMachineZero
+    n = 0
     for i in range(len(wirepath[0])):
+        if i == wirepath[2][n][0]:
+            nicr_file.write('WIRE ' + str(wirepath[2][n][1]))
+            nicr_file.write('SPEED ' + str(wirepath[2][n][2]))
+            n += 1
+
         AX = str(round(wirepath[0][i][0] - zeroPoint.x, 3)) + ' '
         AY = str(round(wirepath[0][i][1] - zeroPoint.y, 3)) + ' '
         BX = str(round(wirepath[1][i][0] - zeroPoint.x, 3)) + ' '
@@ -678,105 +738,43 @@ def writeNiCrFile(wirepath, wirepath_data, directory):
     # close file
     nicr_file.close()
     FreeCAD.Console.PrintMessage('NiCr code generated succesfully\n')
+    #  TODO -> establish standard header and footer as cura does
 
 
 def saveNiCrFile():
     FCW = FreeCADGui.getMainWindow()
-    cpfolder = FreeCAD.ActiveDocument.Wirepath
     save_directory = QtGui.QFileDialog.getSaveFileName(FCW,
                                                        'Save Wirepath as:',
                                                        '/home',
                                                        '.nicr')
-    full_path = createFullPath()
-    wirepath_data = ('test', '', cpfolder.FeedSpeed, cpfolder.WireTemperature)
-    writeNiCrFile(full_path, wirepath_data, str(save_directory[0]))
+    full_path = CreateCompleteRawPath()
+    writeNiCrFile(full_path, str(save_directory[0]))
     FreeCAD.Console.PrintMessage('NiCr code saved: ' + str(save_directory[0]) + '\n')
 
 
-def projectEdgeToTrajectory(PA, PB, Z0, Z1):
-    # aux function of runSimulation
-    # projects shape points to machine workplanes
-    pa = FreeCAD.Vector(PA[0], PA[1], PA[2])
-    pb = FreeCAD.Vector(PB[0], PB[1], PB[2])
-    line_vector = FreeCAD.Vector(PA[0]-PB[0], PA[1]-PB[1], PA[2]-PB[2]).normalize()
-    projected_pa = pa + line_vector*(pa[2] - Z0)
-    projected_pb = pb - line_vector*(Z1 - pb[2])
-    return projected_pa, projected_pb
+def importNiCrFile():
+    FCW = FreeCADGui.getMainWindow()
+    file_dir = QtGui.QFileDialog.getOpenFileName(FCW,
+                                                 'Load .nicr file:',
+                                                 '/home')
+    readNiCrFile(file_dir[0])
+    FreeCAD.Console.PrintMessage('Path succesfully imported\n')
 
 
-def runSimulation(complete_raw_path):
-    # FreeCAD.ActiveDocument.WirePath.ViewObject.Visibility = False
-    projected_trajectory_A = []
-    projected_trajectory_B = []
-    Z0 = FreeCAD.ActiveDocument.NiCrMachine.FrameDiameter*1.1
-    ZL = FreeCAD.ActiveDocument.NiCrMachine.ZLength
-    Z1 = ZL + Z0 - FreeCAD.ActiveDocument.NiCrMachine.FrameDiameter*0.2
-    for i in range(len(complete_raw_path[0])):
-        PA = complete_raw_path[0][i]
-        PB = complete_raw_path[1][i]
-        proj_A, proj_B = projectEdgeToTrajectory(PA, PB, Z0, Z1)
-        projected_trajectory_A.append(proj_A)
-        projected_trajectory_B.append(proj_B)
+def readNiCrFile(file_dir):
+    nicr_file = open(file_dir, 'r')
+    path_A = []
+    path_B = []
+    zlength = 0
+    for line in nicr_file:
+        line = line.split(' ')
+        if line[0] == 'Z':
+            zlength = float(line[3])
 
-    machine_path = (projected_trajectory_A, projected_trajectory_B)
+        if zlength != 0 and line[0] == 'MOVE':
+            path_A.append((float(line[1]), float(line[2]), 0))
+            path_B.append((float(line[3]), float(line[4]), zlength))
 
-    # simulate machine path
-    import time
-    # create wire
-    try:
-        wire = FreeCAD.ActiveDocument.Wire
-    except:
-        wire = FreeCAD.ActiveDocument.addObject('Part::Feature', 'Wire')
-        FreeCAD.ActiveDocument.SimMachine.addObject(wire)
-
-    try:
-        wire_trajectory = FreeCAD.ActiveDocument.WireTrajectory
-    except:
-        wire_trajectory = FreeCAD.ActiveDocument.addObject('Part::Feature','WireTrajectory')
-        FreeCAD.ActiveDocument.SimMachine.addObject(wire_trajectory)
-        wire_trajectory.ViewObject.LineColor = (1.0, 0.0, 0.0)
-        wire_trajectory.ViewObject.LineWidth = 1.0
-
-    # retrieve machine shapes
-    XA = FreeCAD.ActiveDocument.XA
-    XB = FreeCAD.ActiveDocument.XB
-    YA = FreeCAD.ActiveDocument.YA
-    YB = FreeCAD.ActiveDocument.YB
-    # ofsets
-    xoff = FreeCAD.ActiveDocument.NiCrMachine.FrameDiameter*1.5*0
-    yoff = FreeCAD.ActiveDocument.NiCrMachine.FrameDiameter*1.8*0
-    # animation loop
-    wire_t_list = []
-    for i in range(len(machine_path[0])):
-        pa = machine_path[0][i]
-        pb = machine_path[1][i]
-        # draw wire
-        w = Part.makeLine(pa, pb)
-        wire.Shape = w
-        # draw wire trajectory
-        wire_t_list.append(w)
-        wire_trajectory.Shape = Part.makeCompound(wire_t_list)
-        # side A
-        # -XA
-        base_XA = XA.Placement.Base
-        rot_XA = XA.Placement.Rotation
-        base_XA = FreeCAD.Vector(pa.x-xoff, base_XA.y, base_XA.z)
-        XA.Placement = FreeCAD.Placement(base_XA, rot_XA)
-        # -YA
-        base_YA = YA.Placement.Base
-        rot_YA = YA.Placement.Rotation
-        base_YA = FreeCAD.Vector(pa.x-xoff, pa.y-yoff, base_XA.z)
-        YA.Placement = FreeCAD.Placement(base_YA, rot_XA)
-        # -XB
-        base_XB = XB.Placement.Base
-        rot_XB = XB.Placement.Rotation
-        base_XB = FreeCAD.Vector(pb.x-xoff, base_XB.y, base_XB.z)
-        XB.Placement = FreeCAD.Placement(base_XB, rot_XB)
-        # -YB
-        base_YB = YB.Placement.Base
-        rot_YB = YB.Placement.Rotation
-        base_YB = FreeCAD.Vector(pb.x-xoff, pb.y-yoff, base_XB.z)
-        YB.Placement = FreeCAD.Placement(base_YB, rot_XB)
-        # gui update
-        FreeCAD.Gui.updateGui()
-        #time.sleep(0.01)
+    complete_path = (path_A, path_B)
+    obj = FreeCAD.ActiveDocument.addObject('Part::Feature', 'Imported')
+    obj.Shape = PathToShape(complete_path)
