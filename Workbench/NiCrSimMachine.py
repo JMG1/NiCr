@@ -25,7 +25,7 @@
 import FreeCAD
 import Part
 
-class SimMachine:
+class NiCrMachine:
     def __init__( self, obj ):
         # geometric properties
         obj.addProperty( 'App::PropertyFloat',
@@ -150,7 +150,7 @@ class SimMachine:
     def addMachineToDocument(self, FrameDiameter, XLength, YLength, ZLength, created=True):
         # temporal workarround until:http://forum.freecadweb.org/viewtopic.php?f=22&t=13337
         #dbm( '0' )
-        mfolder = FreeCAD.ActiveDocument.getObject('SimMachine')
+        mfolder = FreeCAD.ActiveDocument.getObject('NiCrMachine')
         #dbm( '1' )
         # Remove previous machine parts
         if created:
@@ -166,7 +166,7 @@ class SimMachine:
                                            YLength,
                                            ZLength)
         # temporal workaround
-        #mfolder = FreeCAD.ActiveDocument.addObject( 'App::DocumentObjectGroup','SimMachine' )
+        #mfolder = FreeCAD.ActiveDocument.addObject( 'App::DocumentObjectGroup','NiCrMachine' )
         obj_frame = FreeCAD.ActiveDocument.addObject('Part::Feature', 'Frame')
         obj_XA = FreeCAD.ActiveDocument.addObject('Part::Feature', 'XA')
         obj_XB = FreeCAD.ActiveDocument.addObject('Part::Feature', 'XB')
@@ -194,7 +194,7 @@ class SimMachine:
         mfolder.addObject(obj_YB)
 
 
-class SimMachineViewProvider:
+class NiCrMachineViewProvider:
     def __init__(self, obj):
         obj.Proxy = self
 
@@ -235,16 +235,21 @@ def runSimulation(complete_raw_path):
         wire = FreeCAD.ActiveDocument.Wire
     except:
         wire = FreeCAD.ActiveDocument.addObject('Part::Feature', 'Wire')
-        FreeCAD.ActiveDocument.SimMachine.addObject(wire)
+        FreeCAD.ActiveDocument.NiCrMachine.addObject(wire)
+
 
     try:
-        wire_tr_folder = FreeCAD.ActiveDocument.WireTrajectory
-        FreeCAD.ActiveDocument.removeObject(wire_tr_folder)
+        # remove previous trajectories
+        for obj in FreeCAD.ActiveDocument.WireTrajectory.Group:
+            FreeCAD.ActiveDocument.removeObject(obj.Name)
+
+        FreeCAD.ActiveDocument.removeObject('WireTrajectory')
+
     except:
-        wire_tr_folder = FreeCAD.ActiveDocument.addObject('App::DocumentObjectGroup', 'WireTrajectory')
-        FreeCAD.ActiveDocument.SimMachine.addObject(wire_tr_folder)
+        pass
 
-
+    wire_tr_folder = FreeCAD.ActiveDocument.addObject('App::DocumentObjectGroup', 'WireTrajectory')
+    FreeCAD.ActiveDocument.NiCrMachine.addObject(wire_tr_folder)
     # retrieve machine shapes
     XA = FreeCAD.ActiveDocument.XA
     XB = FreeCAD.ActiveDocument.XB

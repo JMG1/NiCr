@@ -37,7 +37,7 @@ class NiCrWorkbench(Workbench):
 
     def Initialize(self):
         import NiCrInit
-        self.tools = ['CreateSimMachine',
+        self.tools = ['CreateNiCrMachine',
                       'CreateToolPath',
                       'CreatePathLink',
                       'SaveWirePath',

@@ -25,13 +25,13 @@
 import os
 import FreeCAD
 import FreeCADGui
-import Part
 import NiCrSimMachine as NiCrSM
 import NiCrPath
 
 __dir__ = os.path.dirname(__file__)
 
-class CreateSimMachine:
+
+class CreateNiCrMachine:
     def GetResources(self):
         return {'Pixmap': __dir__ + '/icons/CreateMachine.svg',
                 'MenuText': 'Add Simulation Machine',
@@ -40,7 +40,7 @@ class CreateSimMachine:
     def IsActive(self):
         if FreeCADGui.ActiveDocument:
             try:
-                a=FreeCAD.ActiveDocument.SimMachine.Name
+                a=FreeCAD.ActiveDocument.NiCrMachine.Name
                 return False
             except:
                 return True
@@ -48,16 +48,15 @@ class CreateSimMachine:
     def Activated(self):
         # check for already existing machines:
         m_created = False
-        if FreeCAD.ActiveDocument.getObject('SimMachine'):
+        if FreeCAD.ActiveDocument.getObject('NiCrMachine'):
             # yes, this is stupid
             m_created = True
 
         if not(m_created):
             # workaround
-            m = FreeCAD.ActiveDocument.addObject('Part::FeaturePython', 'NiCrMachine')
-            FreeCAD.ActiveDocument.addObject('App::DocumentObjectGroup', 'SimMachine')
-            NiCrSM.SimMachine(m)
-            NiCrSM.SimMachineViewProvider(m.ViewObject)
+            m = FreeCAD.ActiveDocument.addObject('App::DocumentObjectGroupPython', 'NiCrMachine')
+            NiCrSM.NiCrMachine(m)
+            NiCrSM.NiCrMachineViewProvider(m.ViewObject)
             FreeCAD.Gui.SendMsgToActiveView('ViewFit')
             FreeCAD.ActiveDocument.recompute()
 
@@ -222,7 +221,7 @@ class RunPathSimulation:
 
 
 if FreeCAD.GuiUp:
-    FreeCAD.Gui.addCommand('CreateSimMachine', CreateSimMachine())
+    FreeCAD.Gui.addCommand('CreateNiCrMachine', CreateNiCrMachine())
     FreeCAD.Gui.addCommand('CreateToolPath', CreateToolPath())
     FreeCAD.Gui.addCommand('CreatePathLink', CreatePathLink())
     FreeCAD.Gui.addCommand('SaveWirePath', SaveWirePath())
