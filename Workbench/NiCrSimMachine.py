@@ -52,6 +52,14 @@ class NiCrMachine:
                         'ReturnHome',
                         'Animation').ReturnHome = False
 
+        obj.addProperty('App::PropertyBool',
+                        'HideWireTrajectory',
+                        'Animation').HideWireTrajectory = False
+
+        obj.addProperty('App::PropertyBool',
+                        'HideWire',
+                        'Animation').HideWire = False
+
         obj.addProperty('App::PropertyFloat',
                         'AnimationDelay',
                         'Animation',
@@ -76,6 +84,12 @@ class NiCrMachine:
                 FreeCAD.ActiveDocument.getObject('YB').Placement = homePlm
                 fp.ReturnHome = False
 
+            if prop == 'HideWireTrajectory':
+                for obj in FreeCAD.ActiveDocument.WireTrajectory.Group:
+                    obj.ViewObject.Visibility = fp.HideWireTrajectory
+
+            if prop == 'HideWire':
+                FreeCAD.ActiveDocument.Wire.ViewObject.Visibility = fp.HideWire
 
         except AttributeError:
             pass

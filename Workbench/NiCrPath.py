@@ -55,6 +55,19 @@ class WirePathFolder:
                 pass
 
 
+class WirePathViewProvider:
+    def __init__(self, obj):
+        obj.Proxy = self
+
+    def getDefaultDisplayMode(self):
+        return "Flat Lines"
+
+    def getIcon(self):
+        import os
+        __dir__ = os.path.dirname(__file__)
+        return __dir__ + '/icons/WirePath.svg'
+
+
 class ShapePath:
     def __init__(self, obj, selObj):
         obj.addProperty('App::PropertyString',
@@ -119,7 +132,7 @@ class ShapePathViewProvider:
     def getIcon(self):
         import os
         __dir__ = os.path.dirname(__file__)
-        return __dir__ + '/icons/WirePath.svg'
+        return __dir__ + '/icons/ShapePath.svg'
 
 
 class LinkPath:

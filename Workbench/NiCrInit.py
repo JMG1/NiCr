@@ -61,9 +61,9 @@ class CreateNiCrMachine:
             FreeCAD.ActiveDocument.recompute()
 
 
-class CreateToolPath:
+class CreateShapePath:
     def GetResources(self):
-        return {'Pixmap': __dir__ + '/icons/WirePath.svg',
+        return {'Pixmap': __dir__ + '/icons/ShapePath.svg',
                 'MenuText': 'Route',
                 'ToolTip': 'Create the wirepaths for the selected objects'}
 
@@ -87,6 +87,7 @@ class CreateToolPath:
             except:
                 WPFolder = FreeCAD.ActiveDocument.addObject('App::DocumentObjectGroupPython', 'WirePath')
                 NiCrPath.WirePathFolder(WPFolder)
+                NiCrPath.WirePathViewProvider(WPFolder)
 
             # create shapepath object
             selObj = selection[i].Object
@@ -222,7 +223,7 @@ class RunPathSimulation:
 
 if FreeCAD.GuiUp:
     FreeCAD.Gui.addCommand('CreateNiCrMachine', CreateNiCrMachine())
-    FreeCAD.Gui.addCommand('CreateToolPath', CreateToolPath())
+    FreeCAD.Gui.addCommand('CreateToolPath', CreateShapePath())
     FreeCAD.Gui.addCommand('CreatePathLink', CreatePathLink())
     FreeCAD.Gui.addCommand('SaveWirePath', SaveWirePath())
     FreeCAD.Gui.addCommand('ImportWirePath', ImportWirePath())
