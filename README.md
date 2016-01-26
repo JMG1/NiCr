@@ -1,6 +1,9 @@
 ![lol](http://1.bp.blogspot.com/-tHrVNJlAEpg/VpuNi2ifWAI/AAAAAAAACPk/f2MtVT0W-Jw/s1600/nicr1.png)
 
-NiCr (read as 'nickel-chrome' or 'nicrome') is my ongoing OpenSource and OpenHardware project that aims to create a low-cost CNC hot wire foam cutter, built from easy to find and easy to work with materials. Check the project presentation [video](https://www.youtube.com/watch?v=iOVO2aQ5I9E)
+[![License](http://img.shields.io/:license-gpl-blue.svg)](http://opensource.org/licenses/GPL-2.0)
+
+
+NiCr (read as *nickel-chrome* or *nicrome*) is my ongoing OpenSource and OpenHardware project that aims to create a low-cost CNC hot wire foam cutter, built from easy to find and easy to work with materials. Check the project presentation [video](https://www.youtube.com/watch?v=iOVO2aQ5I9E)
 
 This project is comprised of three parts:
 
