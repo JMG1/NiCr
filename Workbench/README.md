@@ -1,7 +1,7 @@
 ## NiCr: FreeCAD Workbench
 
 This is a dedicated FreeCAD workbench to create and simulate toolpaths('wirepaths') for the NiCr machine.
-At the moment it is in heavy development.
+At the moment it is in heavy development and its functionality may be broken from time to time.
 
 ####Workbench demo videos:
 
