@@ -436,7 +436,13 @@ def CreateCompleteRawPath():
     route_commands = [] # stores commands issued along the route(speed, temp..)
     # initial path and shapepath ----------------------------------------------
     iphobj = FreeCAD.ActiveDocument.InitialPath
+    # initial path commands
     route_commands.append([len(pr_A)-1, iphobj.CutSpeed, iphobj.WireTemperature])
+    # initial path starts at machine zero
+    m_zero = FreeCAD.ActiveDocument.NiCrMachine.VirtualMachineZero
+    pr_A.append((m_zero[0], m_zero[1], 0))
+    pr_B.append((m_zero[0], m_zero[1], FreeCAD.ActiveDocument.NiCrMachine.ZLength))
+    # initial path auxiliar points
     for i in range(5):
         aux_p = iphobj.getPropertyByName('ControlPoint' + str(i))
         if (aux_p.x > 0 or aux_p.y > 0) and aux_p.z == 0:
@@ -480,6 +486,9 @@ def CreateCompleteRawPath():
             pr_A.append((aux_p.x, aux_p.y, 0))
             pr_B.append((aux_p.x, aux_p.y, FreeCAD.ActiveDocument.NiCrMachine.ZLength))
 
+    # return to machine zero
+    pr_A.append((m_zero[0],m_zero[1],0.0))
+    pr_B.append((m_zero[0],m_zero[1],FreeCAD.ActiveDocument.NiCrMachine.ZLength))
     # clean geometry
     cl_A = []
     cl_B = []
@@ -716,7 +725,6 @@ def writeNiCrFile(wirepath, directory):
     path_name = FreeCAD.ActiveDocument.WirePath.Label
     mxspeed = FreeCAD.ActiveDocument.WirePath.MaxCutSpeed
     mxtemp = FreeCAD.ActiveDocument.WirePath.MaxWireTemp
-    mzero = FreeCAD.ActiveDocument.NiCrMachine.VirtualMachineZero
     zlength = FreeCAD.ActiveDocument.NiCrMachine.ZLength
     # write header
     nicr_file.write('PATH NAME:' + path_name + '\n')

@@ -1,6 +1,6 @@
 /*
     NiCr Arduino Firmware V0.1
-    
+
 #***************************************************************************
 #*   (c) Javier Martínez García 2016                                       *
 #*                                                                         *
@@ -30,7 +30,7 @@ Current Firmware Features: -----------------------------------------------------
 TODO List:
 -LIMIT SWITCHES
 -HALT BUTTON
--LCD SCREEN WITH CURRENT POSITION, INSTRUCTION, SPEED, TEMPERATURE, % AND TIME 
+-LCD SCREEN WITH CURRENT POSITION, INSTRUCTION, SPEED, TEMPERATURE, % AND TIME
 TO COMPLETITION
 -FEED SPEED SET BY INSTRUCTION AND LCD POTENTIOMETER
 -WIRE TEMPERATURE SET BY LCD POTENTIOMETER
@@ -69,7 +69,7 @@ const int PIN_MB_DIR = 0;
 const int PIN_MC_DIR = 0;
 const int PIN_MD_DIR = 0;
 
-/* LIMIT SWITCH PINOUT 
+/* LIMIT SWITCH PINOUT
 m/M -> min/max
 A/B -> side A or B*/
 const int PIN_LSW_MXA = 0;
@@ -217,7 +217,7 @@ void setup()
 String complete_instruction[6];  // contains the decoded instruction
 bool INIT = false;
 void loop()
-{ 
+{
   while(!Serial.available()) {}  // if there is nothing on serial, do nothing
   int  i = 0;
   char raw_instruction[25];
@@ -237,7 +237,7 @@ void loop()
     // decode the instruction (4 fields) (iterator n = field, iterator j = character)
     int j = 0;
     for( int n = 0; n < 5; n++ )
-    { 
+    {
       while( j < 25 )
       {
         if( raw_instruction[j] == ' ' )
@@ -256,30 +256,32 @@ void loop()
     if( complete_instruction[0] == "INIT" )
     {
       INIT = true; // start reading program
-      Serial.println( "DONE" );
+      Serial.println( 0 );
     }
     if( INIT == true )
     {
-      Serial.println( complete_instruction[0] );
       if( complete_instruction[0] == "POWER" )
       {
         if( complete_instruction[1] == "ON" )
         {
-         digitalWrite( PIN_PSU_POWER, LOW ); 
-         Serial.println( "DONE" );
+         digitalWrite( PIN_PSU_POWER, LOW );
+         Serial.println( 0 );
         }
         else
-        { 
+        {
           digitalWrite( PIN_PSU_POWER, HIGH );
-          Serial.println( "DONE" );
+          Serial.println( 0 );
         }
       }
       if( complete_instruction[0] == "WIRE" )
       {
         wire_temp = complete_instruction[1].toInt();
+        analogWrite( PIN_WIRE, wire_temp );
+        /*
         Serial.print( "Wire temperature set to: " );
         Serial.println( wire_temp );
         Serial.println( "DONE" );
+        */
       }
       if( complete_instruction[0] == "MOVE" )
       {
@@ -288,12 +290,12 @@ void loop()
         int stepsMC = round( complete_instruction[3].toFloat()*scaleMC );
         int stepsMD = round( complete_instruction[4].toFloat()*scaleMD );
         PathABCD( stepsMA, stepsMB, stepsMC, stepsMD );
-        Serial.println( "DONE" );
+        Serial.println( 0 );
       }
       if( complete_instruction[0] == "END" )
       {
         INIT = false;
-        Serial.println( "DONE" );
+        Serial.println( 0 );
       }
     }
     // erase complete_instruction array

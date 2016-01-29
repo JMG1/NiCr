@@ -86,10 +86,10 @@ class NiCrMachine:
 
             if prop == 'HideWireTrajectory':
                 for obj in FreeCAD.ActiveDocument.WireTrajectory.Group:
-                    obj.ViewObject.Visibility = fp.HideWireTrajectory + 1
+                    obj.ViewObject.Visibility = not(fp.HideWireTrajectory)
 
             if prop == 'HideWire':
-                FreeCAD.ActiveDocument.Wire.ViewObject.Visibility = fp.HideWire + 1
+                FreeCAD.ActiveDocument.Wire.ViewObject.Visibility = not(fp.HideWire)
 
         except AttributeError:
             pass
@@ -101,27 +101,27 @@ class NiCrMachine:
     def buildMachine( self, tube_diameter, w_x, w_y, w_z ):
         main_cube = Part.makeBox( w_x + 2*tube_diameter,
                                   w_y + 2*tube_diameter,
-                                  w_z + 2*tube_diameter,
+                                  w_z + 2*tube_diameter + 0.1*tube_diameter,
                                   FreeCAD.Vector(-1.6*tube_diameter,
                                                  -1.8*tube_diameter,
                                                  -1.1*tube_diameter))
 
         xy_cutcube = Part.makeBox( w_x,
                                    w_y,
-                                   w_z*1.5,
+                                   w_z*1.5 + 0.1*tube_diameter,
                                    FreeCAD.Vector(-0.6*tube_diameter,
                                                   -0.8*tube_diameter,
                                                   -2.1*tube_diameter))
         xz_cutcube = Part.makeBox( w_x,
                                    w_y*1.5,
-                                   w_z,
+                                   w_z + 0.1*tube_diameter,
                                    FreeCAD.Vector( -0.6*tube_diameter,
                                                    -2.8*tube_diameter,
                                                    -0.1*tube_diameter))
 
         yz_cutcube = Part.makeBox( w_x*1.5,
                                    w_y,
-                                   w_z,
+                                   w_z + 0.1*tube_diameter,
                                    FreeCAD.Vector( -2.6*tube_diameter,
                                                    -0.8*tube_diameter,
                                                    -0.1*tube_diameter ) )
@@ -142,7 +142,7 @@ class NiCrMachine:
                                  tube_diameter,
                                  FreeCAD.Vector( -0.5*tube_diameter,
                                                  -0.8*tube_diameter,
-                                                 w_z + -0.1*tube_diameter))
+                                                 w_z + -0.1*0*tube_diameter))
 
         # machine y axis frame
         ya_frame = Part.makeBox( tube_diameter*1.2,
@@ -157,7 +157,7 @@ class NiCrMachine:
                                  tube_diameter*1.2,
                                  FreeCAD.Vector( -0.6*tube_diameter,
                                                  -0.8*tube_diameter,
-                                                 w_z - tube_diameter*0.2 ) )
+                                                 w_z - tube_diameter*0.2*0.5 ) )
         #dbm('2.3')
         return frame, xa_frame, xb_frame, ya_frame, yb_frame
 

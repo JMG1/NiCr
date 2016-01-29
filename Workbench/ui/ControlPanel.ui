@@ -1,0 +1,766 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Dialog</class>
+ <widget class="QDialog" name="Dialog">
+  <property name="windowModality">
+   <enum>Qt::WindowModal</enum>
+  </property>
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1088</width>
+    <height>671</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>NiCr Machine Control Panel</string>
+  </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>../icons/WorkbenchIcon.svg</normaloff>../icons/WorkbenchIcon.svg</iconset>
+  </property>
+  <property name="modal">
+   <bool>true</bool>
+  </property>
+  <layout class="QHBoxLayout" name="horizontalLayout_5">
+   <item>
+    <widget class="QTabWidget" name="tabWidget">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="tab">
+      <attribute name="title">
+       <string>Machine</string>
+      </attribute>
+      <layout class="QHBoxLayout" name="horizontalLayout_7">
+       <item>
+        <widget class="QFrame" name="frame_2">
+         <property name="maximumSize">
+          <size>
+           <width>600</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="frameShape">
+          <enum>QFrame::StyledPanel</enum>
+         </property>
+         <property name="frameShadow">
+          <enum>QFrame::Raised</enum>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout">
+          <item>
+           <widget class="QLabel" name="lbl_program_name">
+            <property name="font">
+             <font>
+              <pointsize>12</pointsize>
+              <weight>75</weight>
+              <bold>true</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string>TextLabel</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QListWidget" name="listWidget_commands"/>
+          </item>
+          <item>
+           <widget class="QProgressBar" name="progressBar_completed">
+            <property name="value">
+             <number>0</number>
+            </property>
+            <property name="format">
+             <string>Completed at %p%</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="Line" name="line_5">
+            <property name="frameShadow">
+             <enum>QFrame::Plain</enum>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QFrame" name="frame_4">
+            <property name="frameShape">
+             <enum>QFrame::StyledPanel</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Raised</enum>
+            </property>
+            <layout class="QHBoxLayout" name="horizontalLayout">
+             <item>
+              <widget class="QFrame" name="frame">
+               <property name="frameShape">
+                <enum>QFrame::StyledPanel</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Raised</enum>
+               </property>
+               <layout class="QVBoxLayout" name="verticalLayout_2">
+                <item>
+                 <widget class="QLCDNumber" name="lcdNumber">
+                  <property name="font">
+                   <font>
+                    <weight>75</weight>
+                    <bold>true</bold>
+                   </font>
+                  </property>
+                  <property name="frameShape">
+                   <enum>QFrame::NoFrame</enum>
+                  </property>
+                  <property name="frameShadow">
+                   <enum>QFrame::Plain</enum>
+                  </property>
+                  <property name="lineWidth">
+                   <number>1</number>
+                  </property>
+                  <property name="smallDecimalPoint">
+                   <bool>true</bool>
+                  </property>
+                  <property name="segmentStyle">
+                   <enum>QLCDNumber::Flat</enum>
+                  </property>
+                  <property name="intValue" stdset="0">
+                   <number>25</number>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="label_6">
+                  <property name="text">
+                   <string>Cut Speed Multiplier</string>
+                  </property>
+                  <property name="textFormat">
+                   <enum>Qt::AutoText</enum>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QDial" name="dial_speed">
+                  <property name="font">
+                   <font>
+                    <weight>50</weight>
+                    <bold>false</bold>
+                   </font>
+                  </property>
+                  <property name="focusPolicy">
+                   <enum>Qt::WheelFocus</enum>
+                  </property>
+                  <property name="autoFillBackground">
+                   <bool>false</bool>
+                  </property>
+                  <property name="minimum">
+                   <number>-15</number>
+                  </property>
+                  <property name="maximum">
+                   <number>15</number>
+                  </property>
+                  <property name="singleStep">
+                   <number>1</number>
+                  </property>
+                  <property name="pageStep">
+                   <number>10</number>
+                  </property>
+                  <property name="invertedAppearance">
+                   <bool>false</bool>
+                  </property>
+                  <property name="invertedControls">
+                   <bool>false</bool>
+                  </property>
+                  <property name="wrapping">
+                   <bool>false</bool>
+                  </property>
+                  <property name="notchTarget">
+                   <double>1.700000000000000</double>
+                  </property>
+                  <property name="notchesVisible">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item>
+              <widget class="QFrame" name="frame_3">
+               <property name="frameShape">
+                <enum>QFrame::StyledPanel</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Raised</enum>
+               </property>
+               <layout class="QVBoxLayout" name="verticalLayout_3">
+                <item>
+                 <widget class="QLCDNumber" name="lcdNumber_2">
+                  <property name="font">
+                   <font>
+                    <weight>75</weight>
+                    <bold>true</bold>
+                   </font>
+                  </property>
+                  <property name="frameShape">
+                   <enum>QFrame::NoFrame</enum>
+                  </property>
+                  <property name="segmentStyle">
+                   <enum>QLCDNumber::Flat</enum>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="label_7">
+                  <property name="text">
+                   <string>Wire Temperature Multiplier</string>
+                  </property>
+                  <property name="textFormat">
+                   <enum>Qt::AutoText</enum>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QDial" name="dial_temp">
+                  <property name="font">
+                   <font>
+                    <weight>50</weight>
+                    <bold>false</bold>
+                   </font>
+                  </property>
+                  <property name="focusPolicy">
+                   <enum>Qt::WheelFocus</enum>
+                  </property>
+                  <property name="autoFillBackground">
+                   <bool>false</bool>
+                  </property>
+                  <property name="minimum">
+                   <number>-15</number>
+                  </property>
+                  <property name="maximum">
+                   <number>15</number>
+                  </property>
+                  <property name="singleStep">
+                   <number>1</number>
+                  </property>
+                  <property name="pageStep">
+                   <number>1</number>
+                  </property>
+                  <property name="sliderPosition">
+                   <number>0</number>
+                  </property>
+                  <property name="tracking">
+                   <bool>false</bool>
+                  </property>
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="invertedAppearance">
+                   <bool>false</bool>
+                  </property>
+                  <property name="invertedControls">
+                   <bool>false</bool>
+                  </property>
+                  <property name="wrapping">
+                   <bool>false</bool>
+                  </property>
+                  <property name="notchTarget">
+                   <double>1.700000000000000</double>
+                  </property>
+                  <property name="notchesVisible">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+            </layout>
+            <zorder>frame_3</zorder>
+            <zorder>frame</zorder>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QFrame" name="frame_12">
+         <property name="frameShape">
+          <enum>QFrame::StyledPanel</enum>
+         </property>
+         <property name="frameShadow">
+          <enum>QFrame::Raised</enum>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_6">
+          <item>
+           <widget class="QFrame" name="frame_8">
+            <property name="frameShape">
+             <enum>QFrame::StyledPanel</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Raised</enum>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_4">
+             <item>
+              <widget class="Line" name="line_7">
+               <property name="frameShadow">
+                <enum>QFrame::Plain</enum>
+               </property>
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="label_5">
+               <property name="font">
+                <font>
+                 <pointsize>12</pointsize>
+                 <weight>75</weight>
+                 <bold>true</bold>
+                </font>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Plain</enum>
+               </property>
+               <property name="text">
+                <string>Current Machine Position</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QFrame" name="frame_6">
+               <property name="frameShape">
+                <enum>QFrame::StyledPanel</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Raised</enum>
+               </property>
+               <layout class="QHBoxLayout" name="horizontalLayout_2">
+                <item>
+                 <widget class="QFrame" name="frame_5">
+                  <property name="frameShape">
+                   <enum>QFrame::StyledPanel</enum>
+                  </property>
+                  <property name="frameShadow">
+                   <enum>QFrame::Raised</enum>
+                  </property>
+                  <layout class="QGridLayout" name="gridLayout_2">
+                   <item row="0" column="0">
+                    <widget class="QLCDNumber" name="lcdNumber_3"/>
+                   </item>
+                   <item row="0" column="1">
+                    <widget class="QLabel" name="label">
+                     <property name="maximumSize">
+                      <size>
+                       <width>25</width>
+                       <height>16777215</height>
+                      </size>
+                     </property>
+                     <property name="font">
+                      <font>
+                       <pointsize>12</pointsize>
+                       <weight>75</weight>
+                       <bold>true</bold>
+                      </font>
+                     </property>
+                     <property name="text">
+                      <string>XA</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="0">
+                    <widget class="QLCDNumber" name="lcdNumber_4"/>
+                   </item>
+                   <item row="1" column="1">
+                    <widget class="QLabel" name="label_2">
+                     <property name="maximumSize">
+                      <size>
+                       <width>25</width>
+                       <height>16777215</height>
+                      </size>
+                     </property>
+                     <property name="font">
+                      <font>
+                       <pointsize>12</pointsize>
+                       <weight>75</weight>
+                       <bold>true</bold>
+                      </font>
+                     </property>
+                     <property name="text">
+                      <string>YA</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QFrame" name="frame_7">
+                  <property name="frameShape">
+                   <enum>QFrame::StyledPanel</enum>
+                  </property>
+                  <property name="frameShadow">
+                   <enum>QFrame::Raised</enum>
+                  </property>
+                  <layout class="QGridLayout" name="gridLayout">
+                   <item row="0" column="1">
+                    <widget class="QLabel" name="label_4">
+                     <property name="maximumSize">
+                      <size>
+                       <width>25</width>
+                       <height>16777215</height>
+                      </size>
+                     </property>
+                     <property name="font">
+                      <font>
+                       <pointsize>12</pointsize>
+                       <weight>75</weight>
+                       <bold>true</bold>
+                      </font>
+                     </property>
+                     <property name="text">
+                      <string>XB</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="1">
+                    <widget class="QLabel" name="label_3">
+                     <property name="maximumSize">
+                      <size>
+                       <width>25</width>
+                       <height>16777215</height>
+                      </size>
+                     </property>
+                     <property name="font">
+                      <font>
+                       <pointsize>12</pointsize>
+                       <weight>75</weight>
+                       <bold>true</bold>
+                      </font>
+                     </property>
+                     <property name="text">
+                      <string>YB</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="0">
+                    <widget class="QLCDNumber" name="lcdNumber_5"/>
+                   </item>
+                   <item row="1" column="0">
+                    <widget class="QLCDNumber" name="lcdNumber_6"/>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="Line" name="line">
+            <property name="frameShadow">
+             <enum>QFrame::Plain</enum>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="Line" name="line_6">
+            <property name="frameShadow">
+             <enum>QFrame::Plain</enum>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="verticalSpacer">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Preferred</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="Line" name="line_2">
+            <property name="frameShadow">
+             <enum>QFrame::Plain</enum>
+            </property>
+            <property name="lineWidth">
+             <number>1</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_startstop">
+            <property name="text">
+             <string>STOP/START</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_2">
+      <attribute name="title">
+       <string>Serial Monitor</string>
+      </attribute>
+      <layout class="QHBoxLayout" name="horizontalLayout_8">
+       <item>
+        <widget class="QFrame" name="frame_14">
+         <property name="frameShape">
+          <enum>QFrame::StyledPanel</enum>
+         </property>
+         <property name="frameShadow">
+          <enum>QFrame::Raised</enum>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_7">
+          <item>
+           <widget class="QFrame" name="frame_13">
+            <property name="frameShape">
+             <enum>QFrame::StyledPanel</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Raised</enum>
+            </property>
+            <layout class="QHBoxLayout" name="horizontalLayout_6">
+             <item>
+              <widget class="QLineEdit" name="lineEdit_serial_command"/>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btn_send_serial_command">
+               <property name="text">
+                <string>send</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="QTextBrowser" name="textBrowser_serial_response"/>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QFrame" name="frame_11">
+         <property name="frameShape">
+          <enum>QFrame::StyledPanel</enum>
+         </property>
+         <property name="frameShadow">
+          <enum>QFrame::Raised</enum>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_5">
+          <item>
+           <widget class="QLabel" name="label_9">
+            <property name="font">
+             <font>
+              <pointsize>12</pointsize>
+              <weight>75</weight>
+              <bold>true</bold>
+              <underline>false</underline>
+             </font>
+            </property>
+            <property name="autoFillBackground">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>Serial Communication</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QFrame" name="frame_9">
+            <property name="frameShape">
+             <enum>QFrame::NoFrame</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Raised</enum>
+            </property>
+            <property name="lineWidth">
+             <number>0</number>
+            </property>
+            <layout class="QHBoxLayout" name="horizontalLayout_3">
+             <item>
+              <widget class="QLabel" name="label_10">
+               <property name="maximumSize">
+                <size>
+                 <width>60</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="font">
+                <font>
+                 <pointsize>9</pointsize>
+                </font>
+               </property>
+               <property name="text">
+                <string>Serial Port</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="lb_serial_adress">
+               <property name="font">
+                <font>
+                 <weight>75</weight>
+                 <bold>true</bold>
+                </font>
+               </property>
+               <property name="frameShape">
+                <enum>QFrame::Panel</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Plain</enum>
+               </property>
+               <property name="lineWidth">
+                <number>1</number>
+               </property>
+               <property name="midLineWidth">
+                <number>5</number>
+               </property>
+               <property name="text">
+                <string>lol</string>
+               </property>
+               <property name="textFormat">
+                <enum>Qt::LogText</enum>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignCenter</set>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="QFrame" name="frame_10">
+            <property name="frameShape">
+             <enum>QFrame::StyledPanel</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Raised</enum>
+            </property>
+            <layout class="QHBoxLayout" name="horizontalLayout_4">
+             <item>
+              <widget class="QLabel" name="label_12">
+               <property name="maximumSize">
+                <size>
+                 <width>100</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="font">
+                <font>
+                 <pointsize>9</pointsize>
+                </font>
+               </property>
+               <property name="text">
+                <string>Serial Port Status:</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="lb_serial_status">
+               <property name="font">
+                <font>
+                 <weight>75</weight>
+                 <italic>false</italic>
+                 <bold>true</bold>
+                 <underline>false</underline>
+                 <kerning>true</kerning>
+                </font>
+               </property>
+               <property name="layoutDirection">
+                <enum>Qt::RightToLeft</enum>
+               </property>
+               <property name="frameShape">
+                <enum>QFrame::NoFrame</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Plain</enum>
+               </property>
+               <property name="text">
+                <string>non connected</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btn_refresh">
+               <property name="maximumSize">
+                <size>
+                 <width>50</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>refresh</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <spacer name="verticalSpacer_2">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
