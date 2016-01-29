@@ -1,9 +1,9 @@
 import serial
 import FreeCADGui
-import FreeCAD
 import os
 import time
 from PySide import QtCore, QtGui
+import threading
 
 __dir__ = os.path.dirname(__file__)
 # ui control panel
@@ -125,42 +125,42 @@ class ControlPanel:
                     break
 
     def startMachineProgram(self):
+        threading.Thread(target=self.sendMachineProgram).start()
+
+    def sendMachineProgram(self):
         if not(self.machine_started):
             self.machine_started = True
             time.sleep(0.5)
             nicr_file = open(self.file_dir[0], 'r')
             # align file pointer to list widget pointer
             for i in xrange(self.cmd_init_index - 1):
-                trash = nicr_file.readline()
+                nicr_file.readline()
 
             # clean serial buffer:
-            trash = self.serial.read(100)
+            self.serial.read(100)
             for n in xrange(self.cmd_init_index, self.nicr_total_lines):
                 # highligh current line in table widget
                 itm_prev = self.w.lw_commands.item(n-1)
                 itm = self.w.lw_commands.item(n)
                 itm.setBackground(QtGui.QBrush(QtCore.Qt.blue, QtCore.Qt.SolidPattern))
                 itm.setForeground(QtGui.QBrush(QtCore.Qt.white, QtCore.Qt.SolidPattern))
-                self.w.lw_commands.setCurrentRow(i + 5)
-                itm_prev.setBackground(QtGui.QBrush(QtCore.Qt.blue, QtCore.Qt.SolidPattern))
-                itm_prev.setForeground(QtGui.QBrush(QtCore.Qt.white, QtCore.Qt.SolidPattern))
+                itm_prev.setBackground(QtGui.QBrush(QtCore.Qt.white, QtCore.Qt.SolidPattern))
+                itm_prev.setForeground(QtGui.QBrush(QtCore.Qt.black, QtCore.Qt.SolidPattern))
+                self.w.lw_commands.setCurrentRow(n + 5)
                 # set progress bar
                 self.w.progressBar_completed.setFormat('Running %p%')
                 self.w.progressBar_completed.setValue(n/self.nicr_total_lines)
-                FreeCAD.Console.PrintMessage('0')
+                self.w.update()
                 # read instruction from file
                 ins = nicr_file.readline()
-                FreeCAD.Console.PrintMessage('1')
                 self.serial.write(ins)
                 # serial_resp = ''
                 # while serial_resp == '':
                 serial_resp = self.serial.readline()
-                FreeCAD.Console.PrintMessage('2')
                 # loop to waste time if stopped
                 while self.machine_stop:
                     pass
 
-                FreeCAD.Console.PrintMessage('3')
                 self.w.btn_start_program.setText('Stop')
                 # abort program if button pressed
                 if self.machine_cancel:
@@ -169,7 +169,7 @@ class ControlPanel:
             self.machine_cancel = False
 
         else:
-            self.machine_stop += 1
+            self.machine_stop = not self.machine_stop
             self.w.btn_start_program.setText('Resume')
             self.w.progressBar_completed.setFormat('Paused %p%')
 
