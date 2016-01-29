@@ -205,7 +205,7 @@ void PathABCD( int Adx, int Ady, int Bdx, int Bdy )
     {
       stepper_instruction[i] = 0;
     }
-    Serial.println();
+    // Serial.println();
   }
 }
 
@@ -282,6 +282,7 @@ void loop()
         Serial.println( wire_temp );
         Serial.println( "DONE" );
         */
+        Serial.println( 0 );
       }
       if( complete_instruction[0] == "MOVE" )
       {
